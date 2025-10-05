@@ -1,0 +1,178 @@
+<!--
+// string constants from xml: getString(R.string.name_of_definition)
+// in xml: android:text="@string/name_of_definition"
+-->
+<resources>
+    <string name="app_name">Schiffe versenken</string>
+
+    <string name="title_settings_activity">Eintellungen</string>
+    <string name="title_lobby_activity">Lobby</string>
+    <string name="title_battleship_activity">Schiffe versenken</string>
+
+    <string name="text_yes">Ja</string>
+    <string name="text_no">Nein</string>
+    <string name="text_ok">OK</string>
+    <string name="text_cancel">Abbrechen</string>
+    <string name="text_back">Zurück</string>
+
+    <!-- MainActivity -->
+    <string name="main_menu_settings">Eintellungen</string>
+
+    <string name="main_app_unknown_version">Die aktuelle App-Version kann nicht abgerufen werden.</string>
+
+    <string name="main_btn_find_game">Spiel finden</string>
+    <string name="main_btn_create_game">Spiel erstellen</string>
+    <string name="main_iv_game_icon">Spiel-Symbol</string>
+
+    <string name="main_dialog_find_user">Benutzer (mind. 4 Zeichen)</string>
+    <string name="main_dialog_create_game">Spielname (mind. 4 Zeichen)</string>
+    <string name="no_network_interfaces">Keine Netzwerkschnittstelle verfügbar</string>
+
+    <string name="main_return_message_no_user">Kein Benutzer wurde angegeben.</string>
+    <string name="main_return_message_no_game">Kein Spielanme wurde angegeben.</string>
+    <string name="main_return_message_no_game_mode">Kein Spielmodus wurde angegeben.</string>
+    <string name="main_return_message_no_network_interface">Keine Netzwerkschnittstelle wurde ausgewählt.</string>
+    <string name="main_return_message_other_exit">Anderer Spieler hat das Spiel geschlossen.</string>
+    <string name="main_return_message_own_exit">Spiel beendet.</string>
+    <string name="main_return_message_lobby_exit">Spiel Lobby-Übersicht geschlossen.</string>
+    <string name="main_return_message_invalid_lobby">Lobby Eintrag ist ungültig.</string>
+
+    <string name="main_game_mode_choose">Spielmodus auswählen</string>
+    <string name="main_game_mode_alternate">Abwechselnd</string>
+    <string name="main_game_mode_shot_each_ship">Schuss je Schiff</string>
+    <string name="main_game_mode_3_shot">Drei-Schuss-Salve</string>
+    <string name="main_game_mode_5_shot">Fünf-Schuss-Salve</string>
+
+    <string name="main_game_standard_fleet">Standard Flotte</string>
+    <string name="main_game_frigate_fleet">Fregatten Flotte</string>
+
+    <string name="main_create_game_title">Spiel erstellen</string>
+    <string name="main_find_game_title">Spiel finden</string>
+
+    <string name="main_user_empty">Benutzername darf nicht leer sein.</string>
+    <string name="main_user_length_to_low">Die Länge des Benutzernamens muss größer oder gleich \'%1$d\' sein.</string>
+    <string name="main_game_empty">Spielname darf nicht leer sein.</string>
+    <string name="main_game_length_to_low">Die Länge des Spielnamens muss größer oder gleich \'%1$d\' sein.</string>
+
+    <string name="main_error_access_game_state">Zugriff auf \'%1$s\' nicht möglich.</string>
+    <string name="main_error_game_not_found">Spiel \'%1$s\' nicht gefunden.</string>
+    <string name="main_error_retrieving_game">Fehler beim Abrufen des Spiels: \'%1$s\'.</string>
+
+    <string name="main_game_state_title">Game State</string>
+    <string name="main_game_state_question">Game State für Spiel \'%1$s\' mit Zeitstempel \'%2$s\' gefunden. Wollen sie diesen Game State laden?</string>
+
+    <!-- LobbyActivity -->
+    <string name="lobby_no_game_chosen">Kein Spiel ausgewählt.</string>
+    <string name="lobby_entry_empty">Kein Lobby Eintrag ausgewählt.</string>
+    <string name="lobby_entry_not_found">Lobby Eintrag nicht gefunden.</string>
+
+    <string name="lobby_btn_join">Beitreten</string>
+    <string name="lobby_btn_join_manually">Beitreten (manuell)</string>
+
+    <string name="lobby_join_manually_title">Spiel Verbindungseinstellungen</string>
+    <string name="lobby_join_manually_host">IP-Adresse des Hosts</string>
+    <string name="lobby_join_manually_port">Port (12894 oder 8081)</string>
+
+    <string name="lobby_ip_empty">IP-Adresse darf nicht leer sein.</string>
+    <string name="lobby_ip_length_to_low">Die Länge der IP-Adresse muss größer oder gleich \'%1$d\' sein.</string>
+    <string name="lobby_port_empty">Port darf nicht leer sein.</string>
+    <string name="lobby_port_is_not_integer">Port ist keine ganze Zahl.</string>
+    <string name="lobby_port_to_low">Port muss größer oder gleich \'%1$d\' sein.</string>
+    <string name="lobby_port_to_high">Port muss kleiner oder gleich \'%1$d\' sein.</string>
+
+    <!-- BattleshipActivity -->
+    <string name="battleship_fleet_battleship">Schlachtschiff</string>
+    <string name="battleship_fleet_battlecruiser_one">Schlachtkreuzer #1</string>
+    <string name="battleship_fleet_battlecruiser_two">Schlachtkreuzer #2</string>
+    <string name="battleship_fleet_cruiser_one">Kreuzer #1</string>
+    <string name="battleship_fleet_cruiser_two">Kreuzer #2</string>
+    <string name="battleship_fleet_cruiser_three">Kreuzer #3</string>
+    <string name="battleship_fleet_frigate_one">Fregatte #1</string>
+    <string name="battleship_fleet_frigate_two">Fregatte #2</string>
+    <string name="battleship_fleet_frigate_three">Fregatte #3</string>
+    <string name="battleship_fleet_frigate_four">Fregatte #4</string>
+    <string name="battleship_fleet_frigate_five">Fregatte #5</string>
+    <string name="battleship_fleet_frigate_six">Fregatte #6</string>
+    <string name="battleship_fleet_frigate_seven">Fregatte #7</string>
+    <string name="battleship_fleet_frigate_eight">Fregatte #8</string>
+    <string name="battleship_fleet_frigate_nine">Fregatte #9</string>
+    <string name="battleship_fleet_frigate_ten">Fregatte #10</string>
+
+    <string name="battleship_game_mode">Spielmodus:</string>
+    <string name="battleship_game_mode_unknown">Unbekannt</string>
+    <string name="battleship_additional_option_one"> +1 Schuss nach einem Treffer</string>
+    <string name="battleship_additional_option_two"> erlauben Schiffe gegenseitig zu berühren</string>
+
+    <string name="battle_ship_grid_title_own_fleet">Eigene Flotte</string>
+    <string name="battle_ship_grid_title_enemy_fleet">Gegnerische Flotte</string>
+    <string name="battle_ship_grid_title_enemy_fleet_with_player">Gegnerische Flotte (%1$s)</string>
+
+    <string name="battleship_status_place">Bitte setze \'%1\' auf das Raster.</string>
+    <string name="battleship_status_cannot_place">\'%1\' kann dort nicht platziert werden.</string>
+    <string name="battleship_status_must_not_touch">\'%1\' darf ein anderes Schiff nicht berühren.</string>
+    <string name="battleship_status_place_ship">%1$s (%2$d %3$s)</string>
+    <string name="battleship_status_boxes">Kästchen</string>
+    <string name="battleship_status_all_ships_placed">Alle Schiffe wurden auf dem Raster platziert.</string>
+    <string name="battleship_status_wait_other_player_finished_placement">Bitte warten, bis der andere Spieler seine Flotte platziert hat.</string>
+    <string name="battleship_status_choose_target">Bitte wähle eine Koordinate als Ziel aus.</string>
+    <string name="battleship_status_choose_another_target">Bitte wähle eine andere Koordinate als Ziel.</string>
+    <string name="battleship_status_wait_other_move">Warten bis der andere Spieler den Zug gemacht haben.</string>
+    <string name="battleship_status_marked_target">%1$s als Ziel markiert.</string>
+    <string name="battleship_status_cannot_mark_target">Kann nicht %1$s als Ziel markieren.</string>
+    <string name="battleship_status_fired_to_target">Abgefeuert auf Ziel %1$s.</string>
+    <string name="battleship_status_won">Du hast gewonnen!\nBitte verwende die Standard-Zurück-Schaltfläche.</string>
+    <string name="battleship_status_lost">Du hast deine Flotte verloren!\nBitte verwenden die Standard-Zurück-Schaltfläche.</string>
+
+    <string name="battleship_button_state_horizontal">Horizontal</string>
+    <string name="battleship_button_state_vertical">Vertikal</string>
+    <string name="battleship_button_state_confirm">Bestätigen</string>
+    <string name="battleship_button_state_fire">Feuer!</string>
+
+    <string name="battleship_snackbar_player_joined_game">\'%1$s\' hat sich dem Spiel angeschlossen.</string>
+    <string name="battleship_snackbar_player_left_game">\'%1$s\' hat das Spiel verlassen.</string>
+    <string name="battleship_snackbar_ship_destroyed">\'%1$s\' wurde zerstört.</string>
+
+    <string name="battleship_close_title">Spiel beenden</string>
+    <string name="battleship_close_message">Möchten Sie das Spiel wirklich beenden?</string>
+    <string name="battleship_exit_title">Spiel verlassen</string>
+    <string name="battleship_exit_message">Möchten Sie das Spiel wirklich verlassen?</string>
+
+    <!-- SettingsActivity -->
+    <string name="settings_category_general">Allgemein</string>
+    <string name="settings_general_locale">Spracheinstellungen</string>
+    <string name="settings_general_grid_cell_size">Gitterzellengröße</string>
+    <string name="settings_general_grid_cell_size_summary">Wählen Sie einen Wert zwischen 30 und 60</string>
+    <string name="settings_general_grid_cell_padding">Gitterzellenabstand</string>
+    <string name="settings_general_grid_cell_padding_summary">Wählen Sie einen Wert zwischen 0 und 10</string>
+    <string name="settings_general_sound_effects">Soundeffekte</string>
+
+    <string name="settings_category_udp_settings">UDP Einstellungen</string>
+    <string name="settings_udp_network_interface_name">UDP Netzwerkschnittstellen-Name</string>
+    <string name="settings_udp_multicast_ip">Multicast IP</string>
+    <string name="settings_udp_multicast_port">Multicast Port</string>
+    <string name="settings_udp_multicast_ttl">Multicast TTL</string>
+
+    <string name="settings_category_tcp_settings">TCP Einstellungen</string>
+    <string name="settings_tcp_server_port">Server Port</string>
+    <string name="settings_tcp_common_passphrase">Gemeinsames Passwort</string>
+    <string name="settings_tcp_encryption">Verschlüsselung aktiv</string>
+
+    <string name="settings_password_dialog_fragment_key_missing">Der Präferenzschlüssel für das Passwortdialogfeld ist erforderlich.</string>
+    <string name="settings_password_dialog_fragment_title_missing">Der Titel für das Passwortdialogfeld ist erforderlich.</string>
+
+    <string name="settings_slider_dialog_fragment_key_missing">Der Präferenzschlüssel für den Schieberegler ist erforderlich.</string>
+    <string name="settings_slider_dialog_fragment_title_missing">Der Titel für den Schieberegler ist erforderlich.</string>
+
+    <string name="settings_language_changed">Sprache geändert. Die App wird neu gestartet in %1$d sek.</string>
+    <string name="settings_value_empty">Der Einstellwert darf nicht leer sein.</string>
+    <string name="settings_general_backup_folder_false_start">Der Backup-Ordner muss mit \'Documents/\' beginnen.</string>
+    <string name="settings_value_is_not_integer">Der Einstellwert ist keine ganze Zahl.</string>
+    <string name="settings_value_not_https">Der Einstellwert beginnt nicht mit \'https://\'.</string>
+    <string name="settings_value_missing_placeholder_one">Der Einstellwert beginnt nicht \'%1\'.</string>
+    <string name="settings_value_missing_placeholder_two">Der Einstellwert beginnt nicht \'%2\'.</string>
+    <string name="settings_value_missing_placeholder_three">Der Einstellwert beginnt nicht \'%3\'.</string>
+    <string name="settings_value_length_to_low">Die Länge des Einstellungswerts muss größer oder gleich \'%1$d\' sein.</string>
+    <string name="settings_value_length_to_high">Die Länge des Einstellungswerts muss kleiner oder gleich \'%1$d\' sein.</string>
+    <string name="settings_value_to_low">Der Einstellungswert muss größer oder gleich \'%1$d\' sein.</string>
+    <string name="settings_value_to_high">Der Einstellungswert muss kleiner oder gleich \'%1$d\' sein.</string>
+</resources>

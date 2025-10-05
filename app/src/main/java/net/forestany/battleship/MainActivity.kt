@@ -1,0 +1,983 @@
+package net.forestany.battleship
+
+// android studio: collapse all methods: ctrl + shift + * and then 1 on numpad
+// android studio: expand all with ctrl + shift + numpad + several times
+
+// sound effects
+// https://freesound.org/people/qubodup/sounds/187767/ Cannon Shot by qubodup -- https://freesound.org/s/187767/ -- License: Creative Commons 0
+// https://freesound.org/people/Sheyvan/sounds/519008/ Water Explosion by Sheyvan -- https://freesound.org/s/519008/ -- License: Creative Commons 0
+// https://freesound.org/people/Maikkihapsis/sounds/626950/ tadaa.wav by Maikkihapsis -- https://freesound.org/s/626950/ -- License: Creative Commons 0
+// https://freesound.org/people/florianreichelt/sounds/563010/ Explosion.mp3 by florianreichelt -- https://freesound.org/s/563010/ -- License: Creative Commons 0
+
+import android.annotation.SuppressLint
+import android.content.Context
+import android.content.Intent
+import android.content.SharedPreferences
+import android.content.pm.PackageManager
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.Bundle
+import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.CheckBox
+import android.widget.EditText
+import android.widget.Spinner
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.ContextCompat
+import androidx.core.content.edit
+import androidx.core.os.LocaleListCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import net.forestany.battleship.Util.errorSnackbar
+import net.forestany.battleship.Util.notifySnackbar
+import net.forestany.battleship.game.BattleshipActivity
+import net.forestany.battleship.game.BattleshipGridAdapter.CellState
+import net.forestany.battleship.game.GameState
+import net.forestany.battleship.game.SoundManager
+import net.forestany.battleship.lobby.LobbyActivity
+import net.forestany.battleship.settings.SettingsActivity
+import kotlin.system.exitProcess
+
+class MainActivity : AppCompatActivity() {
+    companion object {
+        private const val TAG = "MainActivity"
+
+        const val GRID_ROWS = 10
+        const val GRID_COLS = 10
+
+        const val GAME_STATE_FILENAME = "gameState.txt"
+
+        const val GAME_MODE_NO_MODE = "NO_MODE"
+        const val GAME_MODE_ALTERNATE = "ALTERNATE"
+        const val GAME_MODE_SHOT_EACH_SHIP = "SHOT_EACH_SHIP"
+        const val GAME_MODE_3_SHOTS = "3_SHOTS"
+        const val GAME_MODE_5_SHOTS = "5_SHOTS"
+
+        const val RETURN_CODE_NO_USER = 3742
+        const val RETURN_CODE_NO_GAME = 4238
+        const val RETURN_CODE_NO_GAME_MODE = 1653
+        const val RETURN_CODE_NO_NETWORK_INTERFACE = 5748
+        const val RETURN_CODE_OTHER_EXIT = 2683
+        const val RETURN_CODE_OWN_EXIT = 8948
+        const val RETURN_CODE_LOBBY_EXIT = 1356
+        const val RETURN_CODE_INVALID_LOBBY = 4727
+
+        const val SETTINGS_GRID_CELL_SIZE = "32"
+        const val SETTINGS_GRID_CELL_PADDING = "2"
+        const val SETTINGS_SOUND_EFFECTS = "false"
+        const val SETTINGS_UDP_NETWORK_INTERFACE_NAME = "wlan0"
+        const val SETTINGS_UDP_MULTICAST_IP = "224.0.0.1" //"FF05:0:0:0:0:0:0:342"
+        const val SETTINGS_UDP_MULTICAST_PORT = "12805"
+        const val SETTINGS_UDP_MULTICAST_TTL = "5"
+        const val SETTINGS_TCP_SERVER_PORT = "12365"
+        const val SETTINGS_TCP_COMMON_PASSPHRASE = "1234567890abcdefghijklmnopqrstuvwxyz"
+        const val SETTINGS_TCP_ENCRYPTION = "false"
+
+        fun loadGameState(directory: java.io.File): GameState? {
+            var gameStateTemp: GameState? = null
+            val file = java.io.File(directory, GAME_STATE_FILENAME)
+
+            if (file.exists()) {
+                try {
+                    val inputStream = java.io.FileInputStream(file)
+                    val inputStreamReader = java.io.InputStreamReader(inputStream)
+                    val bufferedReader = java.io.BufferedReader(inputStreamReader)
+                    var line: String?
+                    var i = 0
+                    gameStateTemp = GameState()
+
+                    while (bufferedReader.readLine().also { line = it } != null) {
+                        if (line.isNullOrEmpty()) {
+                            continue
+                        }
+
+                        if (i == 0) {
+                            gameStateTemp.timestamp = net.forestany.forestj.lib.Helper.fromISO8601UTC(line)
+                        } else if (i == 1) {
+                            gameStateTemp.userType = line!!
+                        } else if (i == 2) {
+                            val a_foo = line!!.split("|")
+
+                            if (a_foo.size == 5) {
+                                gameStateTemp.gameName = a_foo[0]
+                                gameStateTemp.gameMode = a_foo[1]
+                                gameStateTemp.gameAdditionalOptionOne = a_foo[2].contentEquals("true")
+                                gameStateTemp.gameAdditionalOptionTwo = a_foo[3].contentEquals("true")
+                                gameStateTemp.gameFleetIndex = a_foo[4].toInt()
+                            }
+                        } else if (i == 3) {
+                            val a_foo = line!!.split("|")
+
+                            if (a_foo.size == 3) {
+                                gameStateTemp.serverIp = a_foo[0]
+                                gameStateTemp.serverPort = a_foo[1].toInt()
+                                gameStateTemp.userName = a_foo[2]
+                            }
+                        } else if (i == 4) {
+                            val a_foo = line!!.split("|")
+
+                            if (a_foo.size == 6) {
+                                gameStateTemp.ownBoardState = a_foo[0]
+                                gameStateTemp.previousOwnBoardState = a_foo[1]
+                                gameStateTemp.otherBoardState = a_foo[2]
+                                gameStateTemp.previousOtherBoardState = a_foo[3]
+                                gameStateTemp.amountShots = a_foo[4].toInt()
+                                gameStateTemp.buttonState = a_foo[5]
+                            }
+                        } else if (i == 5) {
+                            gameStateTemp.lastStatus = line ?: ""
+                        } else if (i == 6) {
+                            if (line!!.length == 100) {
+                                var l = 0
+
+                                for (j in 0..<GRID_ROWS) {
+                                    for (k in 0..<GRID_COLS) {
+                                        gameStateTemp.ownGrid[j][k] = when (line!![l++]) {
+                                            '~' -> CellState.EMPTY
+                                            '.' -> CellState.MISS
+                                            'o' -> CellState.SHIP
+                                            'x' -> CellState.HIT
+                                            '#' -> CellState.TARGET
+                                            else -> CellState.EMPTY
+                                        }
+                                    }
+                                }
+                            }
+                        } else if (i == 7) {
+                            if (line!!.length == 100) {
+                                var l = 0
+
+                                for (j in 0..<GRID_ROWS) {
+                                    for (k in 0..<GRID_COLS) {
+                                        gameStateTemp.otherGrid[j][k] = when (line!![l++]) {
+                                            '~' -> CellState.EMPTY
+                                            '.' -> CellState.MISS
+                                            'o' -> CellState.SHIP
+                                            'x' -> CellState.HIT
+                                            '#' -> CellState.TARGET
+                                            else -> CellState.EMPTY
+                                        }
+                                    }
+                                }
+                            }
+                        } else if (i == 8) {
+                            gameStateTemp.fleetString = line ?: ""
+                        }
+
+                        i++
+                    }
+
+                    inputStream.close()
+                } catch (e: java.io.IOException) {
+                    gameStateTemp = null
+                }
+            }
+
+            return gameStateTemp
+        }
+
+        fun deleteGameState(directory: java.io.File) {
+            val file = java.io.File(directory, GAME_STATE_FILENAME)
+
+            if (file.exists()) {
+                file.delete()
+            }
+        }
+    }
+
+    private lateinit var btn_find: Button
+    private lateinit var btn_createGame: Button
+
+    private var gameState: GameState? = null
+
+    private val launcher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        when (it.resultCode) {
+            RESULT_OK -> {
+
+            }
+
+            RETURN_CODE_NO_USER -> {
+                errorSnackbar(message = getString(R.string.main_return_message_no_user), view = findViewById(android.R.id.content), length = com.google.android.material.snackbar.Snackbar.LENGTH_LONG)
+            }
+
+            RETURN_CODE_NO_GAME -> {
+                errorSnackbar(message = getString(R.string.main_return_message_no_game), view = findViewById(android.R.id.content), length = com.google.android.material.snackbar.Snackbar.LENGTH_LONG)
+            }
+
+            RETURN_CODE_NO_GAME_MODE -> {
+                errorSnackbar(message = getString(R.string.main_return_message_no_game_mode), view = findViewById(android.R.id.content), length = com.google.android.material.snackbar.Snackbar.LENGTH_LONG)
+            }
+
+            RETURN_CODE_NO_NETWORK_INTERFACE -> {
+                errorSnackbar(message = getString(R.string.main_return_message_no_network_interface), view = findViewById(android.R.id.content), length = com.google.android.material.snackbar.Snackbar.LENGTH_LONG)
+            }
+
+            RETURN_CODE_OTHER_EXIT -> {
+                errorSnackbar(message = getString(R.string.main_return_message_other_exit), view = findViewById(android.R.id.content))
+            }
+
+            RETURN_CODE_OWN_EXIT -> {
+                notifySnackbar(message = getString(R.string.main_return_message_own_exit), view = findViewById(android.R.id.content), length = com.google.android.material.snackbar.Snackbar.LENGTH_LONG)
+            }
+
+            RETURN_CODE_LOBBY_EXIT -> {
+                notifySnackbar(message = getString(R.string.main_return_message_lobby_exit), view = findViewById(android.R.id.content), length = com.google.android.material.snackbar.Snackbar.LENGTH_LONG)
+            }
+
+            RETURN_CODE_INVALID_LOBBY -> {
+                errorSnackbar(message = getString(R.string.main_return_message_invalid_lobby), view = findViewById(android.R.id.content))
+            }
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        // init forestj logging
+        initLogging()
+
+        // default settings
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContentView(R.layout.activity_main)
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main_activity)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
+
+        try {
+            // settings toolbar
+            val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar_main)
+            toolbar.overflowIcon = ContextCompat.getDrawable(this, R.drawable.ic_hamburger_menu)
+            setSupportActionBar(toolbar)
+            supportActionBar?.setDisplayHomeAsUpEnabled(false) /* standard back/home button */
+            supportActionBar?.title = getString(R.string.app_name)
+
+            // deactivate standard back button
+            onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    /* execute anything, e.g. finish() - if nothing is here, nothing happens pushing main back button */
+                }
+            })
+
+            btn_find = findViewById(R.id.bt_findGame)
+            btn_find.setOnClickListener {
+                // check if we have a saved game state
+                if ((gameState != null) && (gameState?.userType.contentEquals("client"))) {
+                    AlertDialog.Builder(this@MainActivity, R.style.ConfirmDialogStyle)
+                        .setTitle(getString(R.string.main_game_state_title))
+                        .setMessage(getString(R.string.main_game_state_question, gameState?.gameName, gameState?.timestamp?.withNano(0).toString()))
+                        .setIcon(android.R.drawable.ic_dialog_info)
+                        .setPositiveButton(getString(R.string.text_yes)) { _, _ ->
+                            showFindGameDialog()
+                        }
+                        .setNegativeButton(getString(R.string.text_no)) { _, _ ->
+                            gameState = null
+                            showFindGameDialog()
+                        }
+                        .show()
+                } else {
+                    showFindGameDialog()
+                }
+            }
+
+            btn_createGame = findViewById(R.id.bt_createGame)
+            btn_createGame.setOnClickListener {
+                // check if we have a saved game state
+                if ((gameState != null) && (gameState?.userType.contentEquals("server"))) {
+                    AlertDialog.Builder(this@MainActivity, R.style.ConfirmDialogStyle)
+                        .setTitle(getString(R.string.main_game_state_title))
+                        .setMessage(getString(R.string.main_game_state_question, gameState?.gameName, gameState?.timestamp?.withNano(0).toString()))
+                        .setIcon(android.R.drawable.ic_dialog_info)
+                        .setPositiveButton(getString(R.string.text_yes)) { _, _ ->
+                            showCreateGameDialog()
+                        }
+                        .setNegativeButton(getString(R.string.text_no)) { _, _ ->
+                            gameState = null
+                            showCreateGameDialog()
+                        }
+                        .show()
+                } else {
+                    showCreateGameDialog()
+                }
+            }
+
+            // restart all settings of app
+            //getSharedPreferences("${packageName}_preferences", Context.MODE_PRIVATE).edit(commit = true) { clear() }
+
+            resetAll()
+            initSettings()
+
+            // initialize sound manager
+            SoundManager.init(applicationContext)
+
+            // load game state
+            gameState = loadGameState(cacheDir)
+
+            // delete loaded game state if it is older than 10 minutes
+            if ((gameState != null) && (gameState?.timestamp != null)) {
+                if (gameState?.timestamp!!.isBefore(java.time.LocalDateTime.now().minusMinutes(10))) {
+                    deleteGameState(cacheDir)
+                    gameState = null
+                }
+            }
+
+//            Log.v(TAG, getAllWifiIpv4Addresses(this).joinToString(", "))
+//
+//            val cm : ConnectivityManager = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+//            val networkCapabilities = cm.getNetworkCapabilities(cm.activeNetwork)
+//            Log.e(TAG, "Network connection: " + networkCapabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET))
+//            Log.e(TAG, "WiFi: " + networkCapabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))
+//            Log.e(TAG, "Mobile: " + networkCapabilities?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR))
+//
+//            cm.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
+//                override fun onAvailable(network : android.net.Network) {
+//                    Log.e(TAG, "The default network is now: " + network)
+//                }
+//
+//                override fun onLost(network : android.net.Network) {
+//                    Log.e(TAG, "The application no longer has a default network. The last default network was " + network)
+//                }
+//
+//                override fun onCapabilitiesChanged(network : android.net.Network, networkCapabilities : NetworkCapabilities) {
+//                    Log.e(TAG, "The default network changed capabilities: " + networkCapabilities)
+//                }
+//
+//                override fun onLinkPropertiesChanged(network : android.net.Network, linkProperties : android.net.LinkProperties) {
+//                    Log.e(TAG, "The default network changed link properties: " + linkProperties)
+//                }
+//            })
+        } catch (e: Exception) {
+            errorSnackbar(message = e.message ?: "Exception in onCreate method.", view = findViewById(R.id.main_activity))
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                finishAffinity()
+                exitProcess(0)
+            }, 15000)
+        }
+
+        Log.v(TAG, "onCreate $TAG")
+    }
+
+    private fun initLogging() {
+        net.forestany.forestj.lib.Global.get().resetLog()
+
+        val o_loggingConfigAll = net.forestany.forestj.lib.LoggingConfig()
+        o_loggingConfigAll.level = java.util.logging.Level.OFF
+        //o_loggingConfigAll.level = java.util.logging.Level.SEVERE
+        //o_loggingConfigAll.level = java.util.logging.Level.WARNING
+        //o_loggingConfigAll.level = java.util.logging.Level.INFO
+        //o_loggingConfigAll.level = java.util.logging.Level.CONFIG
+        //o_loggingConfigAll.level = java.util.logging.Level.FINE
+        //o_loggingConfigAll.level = java.util.logging.Level.FINER
+        //o_loggingConfigAll.level = java.util.logging.Level.FINEST
+        //o_loggingConfigAll.level = java.util.logging.Level.ALL
+        o_loggingConfigAll.useConsole = false
+
+        o_loggingConfigAll.consoleLevel = java.util.logging.Level.OFF
+        //o_loggingConfigAll.consoleLevel = java.util.logging.Level.SEVERE
+        //o_loggingConfigAll.consoleLevel = java.util.logging.Level.WARNING
+        //o_loggingConfigAll.consoleLevel = java.util.logging.Level.INFO
+        //o_loggingConfigAll.consoleLevel = java.util.logging.Level.CONFIG
+        //o_loggingConfigAll.consoleLevel = java.util.logging.Level.FINE
+        //o_loggingConfigAll.consoleLevel = java.util.logging.Level.FINER
+        //o_loggingConfigAll.consoleLevel = java.util.logging.Level.FINEST
+        //o_loggingConfigAll.consoleLevel = java.util.logging.Level.ALL
+
+        //o_loggingConfigAll.useFile = true
+        //o_loggingConfigAll.fileLevel = java.util.logging.Level.SEVERE
+        //o_loggingConfigAll.filePath = "C:\\Users\\Public\\Documents\\"
+        //o_loggingConfigAll.fileLimit = 1000000 // ~ 1.0 MB
+        //o_loggingConfigAll.fileCount = 25
+        o_loggingConfigAll.loadConfig()
+
+        net.forestany.forestj.lib.Global.get().by_logControl = net.forestany.forestj.lib.Global.OFF
+
+        //net.forestany.forestj.lib.Global.get().by_logControl = (net.forestany.forestj.lib.Global.SEVERE + net.forestany.forestj.lib.Global.WARNING + net.forestany.forestj.lib.Global.INFO).toByte()
+        net.forestany.forestj.lib.Global.get().by_internalLogControl = net.forestany.forestj.lib.Global.OFF
+        //net.forestany.forestj.lib.Global.get().by_internalLogControl = net.forestany.forestj.lib.Global.SEVERE
+        //net.forestany.forestj.lib.Global.get().by_internalLogControl = (net.forestany.forestj.lib.Global.SEVERE + net.forestany.forestj.lib.Global.WARNING).toByte()
+        //net.forestany.forestj.lib.Global.get().by_internalLogControl = (net.forestany.forestj.lib.Global.SEVERE + net.forestany.forestj.lib.Global.WARNING + net.forestany.forestj.lib.Global.INFO).toByte()
+        //net.forestany.forestj.lib.Global.get().by_internalLogControl = (net.forestany.forestj.lib.Global.SEVERE + net.forestany.forestj.lib.Global.WARNING + net.forestany.forestj.lib.Global.INFO + net.forestany.forestj.lib.Global.CONFIG).toByte()
+        //net.forestany.forestj.lib.Global.get().by_internalLogControl = (net.forestany.forestj.lib.Global.SEVERE + net.forestany.forestj.lib.Global.WARNING + net.forestany.forestj.lib.Global.INFO + net.forestany.forestj.lib.Global.CONFIG + net.forestany.forestj.lib.Global.FINE + net.forestany.forestj.lib.Global.FINER).toByte()
+        //net.forestany.forestj.lib.Global.get().by_internalLogControl = (net.forestany.forestj.lib.Global.SEVERE + net.forestany.forestj.lib.Global.WARNING + net.forestany.forestj.lib.Global.INFO + net.forestany.forestj.lib.Global.CONFIG + net.forestany.forestj.lib.Global.FINE + net.forestany.forestj.lib.Global.FINER + net.forestany.forestj.lib.Global.FINEST).toByte()
+        //net.forestany.forestj.lib.Global.get().by_internalLogControl = (net.forestany.forestj.lib.Global.SEVERE + net.forestany.forestj.lib.Global.WARNING + net.forestany.forestj.lib.Global.INFO + net.forestany.forestj.lib.Global.CONFIG + net.forestany.forestj.lib.Global.FINE + net.forestany.forestj.lib.Global.FINER + net.forestany.forestj.lib.Global.FINEST + net.forestany.forestj.lib.Global.MASS).toByte()
+    }
+
+    private fun getAllWifiIpv4Addresses(context: Context): List<String> {
+        val ipv4Addresses = mutableListOf<String>()
+        val connectivityManager =
+            context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork
+        val networkCapabilities = connectivityManager.getNetworkCapabilities(network)
+
+        if (networkCapabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true) {
+            val linkProperties = connectivityManager.getLinkProperties(network)
+            linkProperties?.linkAddresses?.forEach { linkAddress ->
+                if (linkAddress.address is java.net.Inet4Address) {
+                    ipv4Addresses.add(linkAddress.address.hostAddress ?: "ip is null")
+                }
+            }
+        }
+
+        return ipv4Addresses
+    }
+
+    @SuppressLint("RestrictedApi")
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.toolbar_menu, menu)
+
+        // allow showing icons on dropdown toolbar menu
+        try {
+            if (menu is androidx.appcompat.view.menu.MenuBuilder) {
+                val menuBuilder: androidx.appcompat.view.menu.MenuBuilder = menu as androidx.appcompat.view.menu.MenuBuilder
+                menuBuilder.setOptionalIconsVisible(true)
+            }
+            // does not run with release build, so the solution above is enough - @SuppressLint("RestrictedApi") needed
+            //val method = menu?.javaClass?.getDeclaredMethod("setOptionalIconsVisible", Boolean::class.javaPrimitiveType)
+            //method?.isAccessible = true
+            //method?.invoke(menu, true)
+        } catch (e: Exception) {
+            errorSnackbar(message = e.message ?: "Exception in onCreateOptionsMenu method.", view = findViewById(android.R.id.content))
+        }
+
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.mI_settings -> {
+                val intent = Intent(this, SettingsActivity::class.java)
+                launcher.launch(intent)
+
+                return true
+            }
+        }
+
+        return super.onOptionsItemSelected(item)
+    }
+
+    private fun showAlertDialog(title: String, view: View?, positiveClickListener: View.OnClickListener) {
+        AlertDialog.Builder(this, R.style.SelectionDialogStyle).setTitle(title).setView(view)
+            .setNegativeButton(getString(R.string.text_cancel), null)
+            .setPositiveButton(getString(R.string.text_ok)) { _, _ ->
+                positiveClickListener.onClick(null)
+            }.show()
+    }
+
+    private fun showCreateGameDialog() {
+        // load game state if it is available
+        if ((gameState != null) && (gameState?.userType.contentEquals("server"))) {
+            val intent = Intent(this, BattleshipActivity::class.java)
+
+            intent.putExtra("GAME_NAME", gameState?.gameName)
+            intent.putExtra("GAME_MODE", gameState?.gameMode)
+            intent.putExtra("GAME_ADDITIONAL_OPTION_ONE", if (gameState?.gameAdditionalOptionOne == true) { "1" } else { "0" })
+            intent.putExtra("GAME_ADDITIONAL_OPTION_TWO", if (gameState?.gameAdditionalOptionTwo == true) { "1" } else { "0" })
+            intent.putExtra("GAME_FLEET_INDEX", gameState?.gameFleetIndex.toString())
+            intent.putExtra("GAME_USER", gameState?.userName)
+            intent.putExtra("NETWORK_INTERFACE", "${gameState?.serverIp}:${gameState?.serverPort}")
+            intent.putExtra("LOAD_GAME_STATE", "1")
+            intent.putExtra("GAME_FLEET_STRING", gameState?.fleetString)
+            intent.putExtra("AMOUNT_SHOTS", gameState?.amountShots.toString())
+            intent.putExtra("BUTTON_STATE", gameState?.buttonState)
+            intent.putExtra("LAST_STATUS", gameState?.lastStatus)
+
+            GlobalInstance.get().b_isServer = true
+            GlobalInstance.get().s_user = gameState?.userType!!
+
+            loadGameBoardSettingsFromGameState()
+
+            launcher.launch(intent)
+        } else {
+//            val intent = Intent(this, BattleshipActivity::class.java)
+//
+//            intent.putExtra("GAME_NAME", "test game name")
+//            intent.putExtra("GAME_MODE", GAME_MODE_SHOT_EACH_SHIP)
+//            intent.putExtra("GAME_ADDITIONAL_OPTION_ONE", "1")
+//            intent.putExtra("GAME_ADDITIONAL_OPTION_TWO", "0")
+//            intent.putExtra("GAME_FLEET_INDEX", "0")
+//            intent.putExtra("GAME_USER", "creator")
+//            //intent.putExtra("NETWORK_INTERFACE", "192.168.178.22:${GlobalInstance.get().getPreferences()["tcp_server_port"]}")
+//            intent.putExtra("NETWORK_INTERFACE", "0.0.0.0:11365")
+//
+//            GlobalInstance.get().b_isServer = true
+//            GlobalInstance.get().s_user = "creator"
+//
+//            launcher.launch(intent)
+//            return@showCreateGameDialog
+
+            val dialogView = View.inflate(this, R.layout.dialog_create_or_join_game, null)
+            val eT_user = dialogView.findViewById<EditText>(R.id.eT_user)
+            val eT_game = dialogView.findViewById<EditText>(R.id.eT_game)
+            val sp_gameMode = dialogView.findViewById<Spinner>(R.id.sp_gameMode)
+            val cB_hitGivesAdditionalShots = dialogView.findViewById<CheckBox>(R.id.cB_hit_gives_additionalShot)
+            val cB_allowShipEdgeToEdge = dialogView.findViewById<CheckBox>(R.id.cB_allow_ship_edge_to_edge)
+            val sp_gameFleet = dialogView.findViewById<Spinner>(R.id.sp_gameFleet)
+            val sp_networkInterface = dialogView.findViewById<Spinner>(R.id.sp_networkInterface)
+            eT_game.visibility = View.VISIBLE
+            sp_gameMode.visibility = View.VISIBLE
+            cB_hitGivesAdditionalShots.visibility = View.VISIBLE
+            cB_allowShipEdgeToEdge.visibility = View.VISIBLE
+            sp_gameFleet.visibility = View.VISIBLE
+            sp_networkInterface.visibility = View.VISIBLE
+
+            var selectedNetworkInterface: String? = null
+
+            sp_networkInterface.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
+                    selectedNetworkInterface = parent.getItemAtPosition(position).toString()
+                    /* Log.i(TAG, "selected network interface: ${selectedNetworkInterface!!}") */
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>) {
+
+                }
+            }
+
+            var a_networkInterfaces: List<String> = getAllWifiIpv4Addresses(this)
+
+            if (a_networkInterfaces.isEmpty()) {
+                a_networkInterfaces = a_networkInterfaces.plus(getString(R.string.no_network_interfaces))
+            }
+
+            val adapterNetworkInterfaces = ArrayAdapter(this, android.R.layout.simple_spinner_item, a_networkInterfaces)
+            adapterNetworkInterfaces.setDropDownViewResource(android.R.layout.select_dialog_singlechoice)
+            sp_networkInterface.adapter = adapterNetworkInterfaces
+
+            val gameModes = linkedMapOf(
+                Pair(GAME_MODE_NO_MODE, getString(R.string.main_game_mode_choose)),
+                Pair(GAME_MODE_ALTERNATE, getString(R.string.main_game_mode_alternate)),
+                Pair(GAME_MODE_SHOT_EACH_SHIP, getString(R.string.main_game_mode_shot_each_ship)),
+                Pair(GAME_MODE_3_SHOTS, getString(R.string.main_game_mode_3_shot)),
+                Pair(GAME_MODE_5_SHOTS, getString(R.string.main_game_mode_5_shot))
+            )
+
+            var selectedGameMode: String? = null
+
+            sp_gameMode.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
+                    selectedGameMode = gameModes.keys.toList()[position]
+                    /* Log.i(TAG, "selected game mode: ${selectedGameMode!!}") */
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>) {
+
+                }
+            }
+
+            val adapterGameMode = ArrayAdapter(this, android.R.layout.simple_spinner_item, gameModes.values.toList())
+            adapterGameMode.setDropDownViewResource(android.R.layout.select_dialog_singlechoice)
+            sp_gameMode.adapter = adapterGameMode
+
+            var selectedGameFleet = 0
+
+            sp_gameFleet.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
+                    selectedGameFleet = position
+                    /* Log.i(TAG, "selected game fleet: $selectedGameFleet") */
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>) {
+
+                }
+            }
+
+            val gameFleets = listOf(
+                getString(R.string.main_game_standard_fleet),
+                getString(R.string.main_game_frigate_fleet)
+            )
+
+            val adapterGameFleet = ArrayAdapter(this, android.R.layout.simple_spinner_item, gameFleets)
+            adapterGameFleet.setDropDownViewResource(android.R.layout.select_dialog_singlechoice)
+            sp_gameFleet.adapter = adapterGameFleet
+
+            showAlertDialog(getString(R.string.main_create_game_title), dialogView) {
+                if (selectedNetworkInterface == getString(R.string.no_network_interfaces)) {
+                    errorSnackbar(message = getString(R.string.main_return_message_no_network_interface), view = findViewById(android.R.id.content))
+                    return@showAlertDialog
+                } else if (eT_user.text.toString().isEmpty()) {
+                    errorSnackbar(message = getString(R.string.main_user_empty), view = findViewById(android.R.id.content))
+                    return@showAlertDialog
+                } else if (eT_user.text.toString().length < 4) {
+                    errorSnackbar(message = getString(R.string.main_user_length_to_low, 4), view = findViewById(android.R.id.content))
+                    return@showAlertDialog
+                } else if (eT_game.text.toString().isEmpty()) {
+                    errorSnackbar(message = getString(R.string.main_game_empty), view = findViewById(android.R.id.content))
+                    return@showAlertDialog
+                } else if (eT_game.text.toString().length < 4) {
+                    errorSnackbar(message = getString(R.string.main_game_length_to_low, 4), view = findViewById(android.R.id.content))
+                    return@showAlertDialog
+                } else if (selectedGameMode == GAME_MODE_NO_MODE) {
+                    errorSnackbar(message = getString(R.string.main_return_message_no_game_mode), view = findViewById(android.R.id.content))
+                    return@showAlertDialog
+                }
+
+                val gameAdditionalOptionOne = if (cB_hitGivesAdditionalShots.isChecked) {
+                    "1"
+                } else {
+                    "0"
+                }
+
+                val gameAdditionalOptionTwo = if (cB_allowShipEdgeToEdge.isChecked) {
+                    "1"
+                } else {
+                    "0"
+                }
+
+                Log.i(TAG, "create game '" + eT_game.text + "' as '" + eT_user.text + "'")
+
+                assumeSharedPreferencesToGlobal(getSharedPreferences("${packageName}_preferences", Context.MODE_PRIVATE))
+
+                val intent = Intent(this, BattleshipActivity::class.java)
+                intent.putExtra("GAME_NAME", eT_game.text.toString())
+                intent.putExtra("GAME_USER", eT_user.text.toString())
+                intent.putExtra("GAME_MODE", selectedGameMode)
+                intent.putExtra("GAME_ADDITIONAL_OPTION_ONE", gameAdditionalOptionOne)
+                intent.putExtra("GAME_ADDITIONAL_OPTION_TWO", gameAdditionalOptionTwo)
+                intent.putExtra("GAME_FLEET_INDEX", selectedGameFleet.toString())
+                intent.putExtra("NETWORK_INTERFACE", "$selectedNetworkInterface:${GlobalInstance.get().getPreferences()["tcp_server_port"]}")
+                GlobalInstance.get().b_isServer = true
+                GlobalInstance.get().s_user = eT_user.text.toString()
+
+                launcher.launch(intent)
+            }
+        }
+    }
+
+    private fun showFindGameDialog() {
+        // load game state if it is available
+        if ((gameState != null) && (gameState?.userType.contentEquals("client"))) {
+            val intent = Intent(this, BattleshipActivity::class.java)
+
+            intent.putExtra("GAME_NAME", gameState?.gameName)
+            intent.putExtra("GAME_MODE", gameState?.gameMode)
+            intent.putExtra("GAME_ADDITIONAL_OPTION_ONE", if (gameState?.gameAdditionalOptionOne == true) { "1" } else { "0" })
+            intent.putExtra("GAME_ADDITIONAL_OPTION_TWO", if (gameState?.gameAdditionalOptionTwo == true) { "1" } else { "0" })
+            intent.putExtra("GAME_FLEET_INDEX", gameState?.gameFleetIndex.toString())
+            intent.putExtra("GAME_USER", gameState?.userName)
+            intent.putExtra("NETWORK_INTERFACE", "${gameState?.serverIp}:${gameState?.serverPort}")
+            intent.putExtra("LOAD_GAME_STATE", "1")
+            intent.putExtra("GAME_FLEET_STRING", gameState?.fleetString)
+            intent.putExtra("AMOUNT_SHOTS", gameState?.amountShots.toString())
+            intent.putExtra("BUTTON_STATE", gameState?.buttonState)
+            intent.putExtra("LAST_STATUS", gameState?.lastStatus)
+
+            GlobalInstance.get().s_user = gameState?.userName!!
+
+            loadGameBoardSettingsFromGameState()
+
+            launcher.launch(intent)
+        } else {
+//            val intent = Intent(this, BattleshipActivity::class.java)
+//
+//            intent.putExtra("GAME_NAME", "test game name")
+//            intent.putExtra("GAME_USER", "player")
+//            //intent.putExtra("NETWORK_INTERFACE", "192.168.178.22:${GlobalInstance.get().getPreferences()["tcp_server_port"]}")
+//            intent.putExtra("NETWORK_INTERFACE", "10.0.2.2:12365")
+//
+//            GlobalInstance.get().s_user = "player"
+//
+//            launcher.launch(intent)
+//            return@showFindGameDialog
+
+            val dialogView = View.inflate(this, R.layout.dialog_create_or_join_game, null)
+            val eT_user = dialogView.findViewById<EditText>(R.id.eT_user)
+            val eT_game = dialogView.findViewById<EditText>(R.id.eT_game)
+            val sp_gameMode = dialogView.findViewById<Spinner>(R.id.sp_gameMode)
+            val cB_hitGivesAdditionalShots = dialogView.findViewById<CheckBox>(R.id.cB_hit_gives_additionalShot)
+            val cB_allowShipEdgeToEdge = dialogView.findViewById<CheckBox>(R.id.cB_allow_ship_edge_to_edge)
+            val sp_gameFleet = dialogView.findViewById<Spinner>(R.id.sp_gameFleet)
+            val sp_networkInterface = dialogView.findViewById<Spinner>(R.id.sp_networkInterface)
+            eT_game.visibility = View.GONE
+            sp_gameMode.visibility = View.GONE
+            cB_hitGivesAdditionalShots.visibility = View.GONE
+            cB_allowShipEdgeToEdge.visibility = View.GONE
+            sp_gameFleet.visibility = View.GONE
+            sp_networkInterface.visibility = View.GONE
+
+            showAlertDialog(getString(R.string.main_find_game_title), dialogView) {
+                if (eT_user.text.toString().isEmpty()) {
+                    errorSnackbar(message = getString(R.string.main_user_empty), view = findViewById(android.R.id.content))
+                    return@showAlertDialog
+                } else if (eT_user.text.toString().length < 4) {
+                    errorSnackbar(message = getString(R.string.main_user_length_to_low, 4), view = findViewById(android.R.id.content))
+                    return@showAlertDialog
+                }
+
+                Log.i(TAG, "find game as '" + eT_user.text + "'")
+
+                assumeSharedPreferencesToGlobal(getSharedPreferences("${packageName}_preferences", Context.MODE_PRIVATE))
+
+                val intent = Intent(this, LobbyActivity::class.java)
+                intent.putExtra("GAME_USER", eT_user.text.toString())
+                GlobalInstance.get().s_user = eT_user.text.toString()
+
+                launcher.launch(intent)
+            }
+        }
+    }
+
+    private fun loadGameBoardSettingsFromGameState() {
+        // set board state
+        val ownBoardState: BattleshipActivity.BoardState = when (gameState?.ownBoardState) {
+            "OWN_BOARD" -> BattleshipActivity.BoardState.OWN_BOARD
+            "OTHER_BOARD" -> BattleshipActivity.BoardState.OTHER_BOARD
+            "OTHER_BOARD_TARGET" -> BattleshipActivity.BoardState.OTHER_BOARD_TARGET
+            "END" -> BattleshipActivity.BoardState.END
+            else -> BattleshipActivity.BoardState.PLACEMENT
+        }
+
+        GlobalInstance.get().setBoardState(ownBoardState)
+
+        // set previous board state
+        val previousOwnBoardState: BattleshipActivity.BoardState = when (gameState?.ownBoardState) {
+            "OWN_BOARD" -> BattleshipActivity.BoardState.OWN_BOARD
+            "OTHER_BOARD" -> BattleshipActivity.BoardState.OTHER_BOARD
+            "OTHER_BOARD_TARGET" -> BattleshipActivity.BoardState.OTHER_BOARD_TARGET
+            "END" -> BattleshipActivity.BoardState.END
+            else -> BattleshipActivity.BoardState.PLACEMENT
+        }
+
+        GlobalInstance.get().setPreviousBoardState(previousOwnBoardState)
+
+        // set other board state
+        val otherBoardState: BattleshipActivity.BoardState = when (gameState?.ownBoardState) {
+            "OWN_BOARD" -> BattleshipActivity.BoardState.OWN_BOARD
+            "OTHER_BOARD" -> BattleshipActivity.BoardState.OTHER_BOARD
+            "OTHER_BOARD_TARGET" -> BattleshipActivity.BoardState.OTHER_BOARD_TARGET
+            "END" -> BattleshipActivity.BoardState.END
+            else -> BattleshipActivity.BoardState.PLACEMENT
+        }
+
+        GlobalInstance.get().setOtherBoardState(otherBoardState)
+
+        // set previous other board state
+        val previousOtherBoardState: BattleshipActivity.BoardState = when (gameState?.ownBoardState) {
+            "OWN_BOARD" -> BattleshipActivity.BoardState.OWN_BOARD
+            "OTHER_BOARD" -> BattleshipActivity.BoardState.OTHER_BOARD
+            "OTHER_BOARD_TARGET" -> BattleshipActivity.BoardState.OTHER_BOARD_TARGET
+            "END" -> BattleshipActivity.BoardState.END
+            else -> BattleshipActivity.BoardState.PLACEMENT
+        }
+
+        GlobalInstance.get().setPreviousOtherBoardState(previousOtherBoardState)
+
+        // set own grid
+        for (i in 0 ..< GRID_ROWS) {
+            for (j in 0 ..< GRID_COLS) {
+                GlobalInstance.get().setOwnGridCellState(i, j, gameState?.ownGrid!![i][j])
+            }
+        }
+
+        // set other grid
+        for (i in 0 ..< GRID_ROWS) {
+            for (j in 0 ..< GRID_COLS) {
+                GlobalInstance.get().setOtherGridCellState(i, j, gameState?.otherGrid!![i][j])
+            }
+        }
+    }
+
+    private fun resetAll() {
+        try {
+            GlobalInstance.get().o_threadLobby?.interrupt()
+        } catch (_: Exception) {
+        } finally {
+            GlobalInstance.get().o_threadLobby = null
+        }
+
+        try {
+            GlobalInstance.get().o_communicationLobby?.stop()
+        } catch (_: Exception) {
+        } finally {
+            GlobalInstance.get().o_communicationLobby = null
+        }
+
+        try {
+            GlobalInstance.get().o_threadBattleship?.interrupt()
+        } catch (_: Exception) {
+        } finally {
+            GlobalInstance.get().o_threadBattleship = null
+        }
+
+        try {
+            GlobalInstance.get().o_communicationBattleship?.stop()
+        } catch (_: Exception) {
+        } finally {
+            GlobalInstance.get().o_communicationBattleship = null
+        }
+
+        GlobalInstance.get().b_serverClosed = false
+        GlobalInstance.get().b_isServer = false
+        GlobalInstance.get().s_user = "NO_USER_SPECIFIED"
+        GlobalInstance.get().s_otherUser = "NO_OTHER_USER_SPECIFIED"
+        GlobalInstance.get().s_gameMode = GAME_MODE_NO_MODE
+        GlobalInstance.get().b_gameAdditionalOptionOne = false
+        GlobalInstance.get().i_fleetIndex = 0
+        GlobalInstance.get().clearClientLobbyEntries()
+        GlobalInstance.get().clearMessageBox()
+        GlobalInstance.get().clearSnackbarBox()
+
+        GlobalInstance.get().setBoardState(BattleshipActivity.BoardState.PLACEMENT)
+        GlobalInstance.get().setPreviousBoardState(BattleshipActivity.BoardState.PLACEMENT)
+        GlobalInstance.get().setOtherBoardState(BattleshipActivity.BoardState.PLACEMENT)
+        GlobalInstance.get().setPreviousOtherBoardState(BattleshipActivity.BoardState.PLACEMENT)
+
+        GlobalInstance.get().resetOwnGrid()
+        GlobalInstance.get().resetOtherGrid()
+        GlobalInstance.get().resetOtherNoTargetGrid()
+        GlobalInstance.get().resetOwnGridEnd()
+        GlobalInstance.get().resetOtherGridEnd()
+    }
+
+    private fun initSettings() {
+        val sharedPreferences = getSharedPreferences("${packageName}_preferences", Context.MODE_PRIVATE)
+
+        checkForAppUpdate(sharedPreferences)
+
+        //sharedPreferences.all.forEach {
+        //    Log.v(TAG, "${it.key} -> ${it.value}")
+        //}
+
+        if (
+            (sharedPreferences.all.isEmpty()) ||
+            (!sharedPreferences.contains("general_locale")) ||
+            (!sharedPreferences.contains("grid_cell_size")) ||
+            (!sharedPreferences.contains("grid_cell_padding")) ||
+            (!sharedPreferences.contains("sound_effects")) ||
+            (!sharedPreferences.contains("udp_network_interface_name")) ||
+            (!sharedPreferences.contains("udp_multicast_ip")) ||
+            (!sharedPreferences.contains("udp_multicast_port")) ||
+            (!sharedPreferences.contains("udp_multicast_ttl")) ||
+            (!sharedPreferences.contains("tcp_server_port")) ||
+            (!sharedPreferences.contains("tcp_common_passphrase")) ||
+            (!sharedPreferences.contains("tcp_encryption"))
+        ) {
+            sharedPreferences.edit(commit = true) {
+                if (!sharedPreferences.contains("general_locale")) {
+                    val s_locale = java.util.Locale.getDefault().toString()
+
+                    if ((s_locale.lowercase().startsWith("de")) || (s_locale.lowercase().startsWith("en"))) {
+                        putString("general_locale", java.util.Locale.getDefault().toString().substring(0, 2))
+                    } else {
+                        putString("general_locale", "en")
+                    }
+                }
+
+                if (!sharedPreferences.contains("grid_cell_size")) putString("grid_cell_size", SETTINGS_GRID_CELL_SIZE)
+                if (!sharedPreferences.contains("grid_cell_padding")) putString("grid_cell_padding", SETTINGS_GRID_CELL_PADDING)
+                if (!sharedPreferences.contains("sound_effects")) putBoolean("sound_effects", SETTINGS_SOUND_EFFECTS.contentEquals("true"))
+                if (!sharedPreferences.contains("udp_network_interface_name")) putString("udp_network_interface_name", SETTINGS_UDP_NETWORK_INTERFACE_NAME)
+                if (!sharedPreferences.contains("udp_multicast_ip")) putString("udp_multicast_ip", SETTINGS_UDP_MULTICAST_IP)
+                if (!sharedPreferences.contains("udp_multicast_port")) putString("udp_multicast_port", SETTINGS_UDP_MULTICAST_PORT)
+                if (!sharedPreferences.contains("udp_multicast_ttl")) putString("udp_multicast_ttl", SETTINGS_UDP_MULTICAST_TTL)
+                if (!sharedPreferences.contains("tcp_server_port")) putString("tcp_server_port", SETTINGS_TCP_SERVER_PORT)
+                if (!sharedPreferences.contains("tcp_common_passphrase")) putString("tcp_common_passphrase", SETTINGS_TCP_COMMON_PASSPHRASE)
+                if (!sharedPreferences.contains("tcp_encryption")) putBoolean("tcp_encryption", SETTINGS_TCP_ENCRYPTION.contentEquals("true"))
+            }
+        }
+
+        assumeSharedPreferencesToGlobal(sharedPreferences)
+
+        if (java.util.Locale.getDefault().toString().substring(0, 2) != sharedPreferences.all["general_locale"].toString()) {
+            AppCompatDelegate.setApplicationLocales(
+                LocaleListCompat.forLanguageTags(
+                    sharedPreferences.all["general_locale"].toString()
+                )
+            )
+        }
+    }
+
+    private fun assumeSharedPreferencesToGlobal(sharedPreferences: SharedPreferences) {
+        GlobalInstance.get().clearPreferences()
+
+        sharedPreferences.all.forEach {
+            GlobalInstance.get().addPreference(it.key, it.value)
+            //if (it.key!!.contentEquals("option_one")) GlobalInstance.get().optionOne = it.value.toString()
+            //if (it.key!!.contentEquals("option_two")) GlobalInstance.get().optionTwo = it.value.toString()
+            //if (it.key!!.contentEquals("option_three")) GlobalInstance.get().optionThree = it.value.toString()
+        }
+    }
+
+    private fun getCurrentAppVersion(): String? {
+        return try {
+            packageManager.getPackageInfo(packageName, 0).versionName
+        } catch (_: PackageManager.NameNotFoundException) {
+            "unknown_version"
+        }
+    }
+
+    private fun checkForAppUpdate(o_sharedPreferences: SharedPreferences) {
+        val s_lastVersion: String = o_sharedPreferences.getString("last_version", "") ?: ""
+
+        val s_currentVersion = getCurrentAppVersion()
+
+        if (s_currentVersion.contentEquals("unknown_version")) {
+            errorSnackbar(message = getString(R.string.main_app_unknown_version), view = findViewById(android.R.id.content))
+        } else if (s_lastVersion.isEmpty()) {
+            onFirstLaunchEver()
+            o_sharedPreferences.edit { putString("last_version", s_currentVersion) }
+        } else if (s_currentVersion != s_lastVersion) {
+            onFirstLaunchAfterUpdate()
+            o_sharedPreferences.edit { putString("last_version", s_currentVersion) }
+        } else {
+            Log.v(TAG, "app has not changed")
+        }
+    }
+
+    private fun onFirstLaunchEver() {
+        Log.v(TAG, "first launch ever")
+    }
+
+    private fun onFirstLaunchAfterUpdate() {
+        Log.v(TAG, "first launch after update")
+    }
+
+    override fun onStart() {
+        super.onStart()
+
+        Log.v(TAG, "onStart $TAG")
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        Log.v(TAG, "onResume $TAG")
+    }
+
+    override fun onPause() {
+        super.onPause()
+
+        Log.v(TAG, "onPause $TAG")
+    }
+
+    override fun onStop() {
+        super.onStop()
+
+        Log.v(TAG, "onStop $TAG")
+    }
+
+    override fun onRestart() {
+        super.onRestart()
+
+        assumeSharedPreferencesToGlobal(getSharedPreferences("${packageName}_preferences", Context.MODE_PRIVATE))
+
+        Log.v(TAG, "onRestart $TAG")
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+
+        resetAll()
+        SoundManager.release()
+
+        Log.v(TAG, "onDestroy $TAG")
+    }
+}

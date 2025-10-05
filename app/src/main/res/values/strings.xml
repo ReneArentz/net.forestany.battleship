@@ -1,0 +1,178 @@
+<!--
+// string constants from xml: getString(R.string.name_of_definition)
+// in xml: android:text="@string/name_of_definition"
+-->
+<resources>
+    <string name="app_name">Battleship</string>
+
+    <string name="title_settings_activity">Settings</string>
+    <string name="title_lobby_activity">Lobby</string>
+    <string name="title_battleship_activity">Battleship</string>
+
+    <string name="text_yes">Yes</string>
+    <string name="text_no">No</string>
+    <string name="text_ok">OK</string>
+    <string name="text_cancel">Cancel</string>
+    <string name="text_back">Back</string>
+
+    <!-- MainActivity -->
+    <string name="main_menu_settings">Settings</string>
+
+    <string name="main_app_unknown_version">Cannot get current app version.</string>
+
+    <string name="main_btn_find_game">Find Game</string>
+    <string name="main_btn_create_game">Create Game</string>
+    <string name="main_iv_game_icon">Game Icon</string>
+
+    <string name="main_dialog_find_user">user_name (at least 4 characters)</string>
+    <string name="main_dialog_create_game">game_name (at least 4 characters)</string>
+    <string name="no_network_interfaces">No network interfaces available</string>
+
+    <string name="main_return_message_no_user">No user name has been entered.</string>
+    <string name="main_return_message_no_game">No game name has been entered.</string>
+    <string name="main_return_message_no_game_mode">No game mode has been chosen.</string>
+    <string name="main_return_message_no_network_interface">No network interface has been chosen.</string>
+    <string name="main_return_message_other_exit">Other player has closed the game.</string>
+    <string name="main_return_message_own_exit">Left game.</string>
+    <string name="main_return_message_lobby_exit">Game lobby overview closed.</string>
+    <string name="main_return_message_invalid_lobby">Lobby entry is invalid.</string>
+
+    <string name="main_game_mode_choose">Choose game mode</string>
+    <string name="main_game_mode_alternate">Alternate</string>
+    <string name="main_game_mode_shot_each_ship">Shot per ship</string>
+    <string name="main_game_mode_3_shot">Three-shot burst</string>
+    <string name="main_game_mode_5_shot">Five-shot burst</string>
+
+    <string name="main_game_standard_fleet">Standard fleet</string>
+    <string name="main_game_frigate_fleet">Frigate fleet</string>
+
+    <string name="main_create_game_title">Create game</string>
+    <string name="main_find_game_title">Find game</string>
+
+    <string name="main_user_empty">User name cannot be empty.</string>
+    <string name="main_user_length_to_low">User name length must be higher equal \'%1$d\'.</string>
+    <string name="main_game_empty">Game name cannot be empty.</string>
+    <string name="main_game_length_to_low">Game name length must be higher equal \'%1$d\'.</string>
+
+    <string name="main_error_access_game_state">Could not access \'%1$s\'.</string>
+    <string name="main_error_game_not_found">Game \'%1$s\' not found.</string>
+    <string name="main_error_retrieving_game">Error while retrieving game: \'%1$s\'.</string>
+
+    <string name="main_game_state_title">Game State</string>
+    <string name="main_game_state_question">Found game state for game \'%1$s\' with timestamp \'%2$s\'. Do you want to load this state?</string>
+
+    <!-- LobbyActivity -->
+    <string name="lobby_no_game_chosen">No game has been chosen.</string>
+    <string name="lobby_entry_empty">No lobby entry has been chosen.</string>
+    <string name="lobby_entry_not_found">Lobby entry not found.</string>
+
+    <string name="lobby_btn_join">Join</string>
+    <string name="lobby_btn_join_manually">Join manually</string>
+
+    <string name="lobby_join_manually_title">Game connection settings</string>
+    <string name="lobby_join_manually_host">IP of host</string>
+    <string name="lobby_join_manually_port">Port (12894 or 8081)</string>
+
+    <string name="lobby_ip_empty">IP address must not be empty.</string>
+    <string name="lobby_ip_length_to_low">IP address length must be higher equal \'%1$d\'.</string>
+    <string name="lobby_port_empty">Port must not be empty.</string>
+    <string name="lobby_port_is_not_integer">Port is not an integer.</string>
+    <string name="lobby_port_to_low">Port must be higher equal \'%1$d\'.</string>
+    <string name="lobby_port_to_high">Port must be lower equal \'%1$d\'.</string>
+
+    <!-- BattleshipActivity -->
+    <string name="battleship_fleet_battleship">Battleship</string>
+    <string name="battleship_fleet_battlecruiser_one">Battlecruiser #1</string>
+    <string name="battleship_fleet_battlecruiser_two">Battlecruiser #2</string>
+    <string name="battleship_fleet_cruiser_one">Cruiser #1</string>
+    <string name="battleship_fleet_cruiser_two">Cruiser #2</string>
+    <string name="battleship_fleet_cruiser_three">Cruiser #3</string>
+    <string name="battleship_fleet_frigate_one">Frigate #1</string>
+    <string name="battleship_fleet_frigate_two">Frigate #2</string>
+    <string name="battleship_fleet_frigate_three">Frigate #3</string>
+    <string name="battleship_fleet_frigate_four">Frigate #4</string>
+    <string name="battleship_fleet_frigate_five">Frigate #5</string>
+    <string name="battleship_fleet_frigate_six">Frigate #6</string>
+    <string name="battleship_fleet_frigate_seven">Frigate #7</string>
+    <string name="battleship_fleet_frigate_eight">Frigate #8</string>
+    <string name="battleship_fleet_frigate_nine">Frigate #9</string>
+    <string name="battleship_fleet_frigate_ten">Frigate #10</string>
+
+    <string name="battleship_game_mode">Game mode:</string>
+    <string name="battleship_game_mode_unknown">Unknown</string>
+    <string name="battleship_additional_option_one"> +1 shoot after a hit</string>
+    <string name="battleship_additional_option_two"> allow ships to touch each other</string>
+
+    <string name="battle_ship_grid_title_own_fleet">Own Fleet</string>
+    <string name="battle_ship_grid_title_enemy_fleet">Enemy Fleet</string>
+    <string name="battle_ship_grid_title_enemy_fleet_with_player">Enemy Fleet (%1$s)</string>
+
+    <string name="battleship_status_place">Please place \'%1\' on the grid.</string>
+    <string name="battleship_status_cannot_place">Cannot place \'%1\' there.</string>
+    <string name="battleship_status_must_not_touch">\'%1\' must not touch another ship.</string>
+    <string name="battleship_status_place_ship">%1$s (%2$d %3$s)</string>
+    <string name="battleship_status_boxes">boxes</string>
+    <string name="battleship_status_all_ships_placed">All ships have been placed on the grid.</string>
+    <string name="battleship_status_wait_other_player_finished_placement">Please wait until the other player has finished placing their fleet.</string>
+    <string name="battleship_status_choose_target">Please choose a coordinate as target.</string>
+    <string name="battleship_status_choose_another_target">Please choose a coordinate as target.</string>
+    <string name="battleship_status_wait_other_move">Wait for other players move.</string>
+    <string name="battleship_status_marked_target">%1$s marked as target.</string>
+    <string name="battleship_status_cannot_mark_target">Cannot mark %1$s as target.</string>
+    <string name="battleship_status_fired_to_target">Fired to target %1$s.</string>
+    <string name="battleship_status_won">You won!\nPlease use standard back button.</string>
+    <string name="battleship_status_lost">You lost your fleet!\nPlease use standard back button.</string>
+
+    <string name="battleship_button_state_horizontal">Horizontal</string>
+    <string name="battleship_button_state_vertical">Vertical</string>
+    <string name="battleship_button_state_confirm">Confirm</string>
+    <string name="battleship_button_state_fire">Fire!</string>
+
+    <string name="battleship_snackbar_player_joined_game">\'%1$s\' joined the game.</string>
+    <string name="battleship_snackbar_player_left_game">\'%1$s\' left the game.</string>
+    <string name="battleship_snackbar_ship_destroyed">\'%1$s\' has been destroyed.</string>
+
+    <string name="battleship_close_title">Close game</string>
+    <string name="battleship_close_message">Are you sure to close the game?</string>
+    <string name="battleship_exit_title">Leave game</string>
+    <string name="battleship_exit_message">Are you sure to leave the game?</string>
+
+    <!-- SettingsActivity -->
+    <string name="settings_category_general">General</string>
+    <string name="settings_general_locale">Language</string>
+    <string name="settings_general_grid_cell_size">Grid cell size</string>
+    <string name="settings_general_grid_cell_size_summary">Choose a value between 30 and 60</string>
+    <string name="settings_general_grid_cell_padding">Grid cell padding</string>
+    <string name="settings_general_grid_cell_padding_summary">Choose a value between 0 and 10</string>
+    <string name="settings_general_sound_effects">Sound effects</string>
+
+    <string name="settings_category_udp_settings">UDP Settings</string>
+    <string name="settings_udp_network_interface_name">UDP Network Interface Name</string>
+    <string name="settings_udp_multicast_ip">Multicast IP</string>
+    <string name="settings_udp_multicast_port">Multicast Port</string>
+    <string name="settings_udp_multicast_ttl">Multicast TTL</string>
+
+    <string name="settings_category_tcp_settings">TCP Settings</string>
+    <string name="settings_tcp_server_port">Server Port</string>
+    <string name="settings_tcp_common_passphrase">Common Passphrase</string>
+    <string name="settings_tcp_encryption">Use encryption</string>
+
+    <string name="settings_password_dialog_fragment_key_missing">Preference key for password dialog fragment is required.</string>
+    <string name="settings_password_dialog_fragment_title_missing">Title for password dialog fragment is required.</string>
+
+    <string name="settings_slider_dialog_fragment_key_missing">Preference key for slider dialog fragment is required.</string>
+    <string name="settings_slider_dialog_fragment_title_missing">Title for slider dialog fragment is required.</string>
+
+    <string name="settings_language_changed">Language changed. App will restart in %1$d sec.</string>
+    <string name="settings_value_empty">Setting value must not be empty.</string>
+    <string name="settings_general_backup_folder_false_start">Backup folder must start with \'Documents/\'.</string>
+    <string name="settings_value_is_not_integer">Setting value is not an integer.</string>
+    <string name="settings_value_not_https">Setting value does not start with \'https://\'.</string>
+    <string name="settings_value_missing_placeholder_one">Setting value does not contain \'%1\'.</string>
+    <string name="settings_value_missing_placeholder_two">Setting value does not contain \'%2\'.</string>
+    <string name="settings_value_missing_placeholder_three">Setting value does not contain \'%3\'.</string>
+    <string name="settings_value_length_to_low">Settings value length must be higher equal \'%1$d\'.</string>
+    <string name="settings_value_length_to_high">Settings value length must be lower equal \'%1$d\'.</string>
+    <string name="settings_value_to_low">Settings value must be higher equal \'%1$d\'.</string>
+    <string name="settings_value_to_high">Settings value must be lower equal \'%1$d\'.</string>
+</resources>
