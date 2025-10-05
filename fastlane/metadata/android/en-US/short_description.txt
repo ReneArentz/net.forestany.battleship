@@ -1,1 +1,1 @@
-A classic two-player Battleship game with multiple modes, custom rules, and modern Android design.
+Two-player Battleship game with multiple modes and custom rules.
