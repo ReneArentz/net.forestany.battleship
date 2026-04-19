@@ -27,6 +27,11 @@
             app:title="@string/settings_general_sound_effects"
             app:useSimpleSummaryProvider="true" />
 
+        <SwitchPreferenceCompat
+            app:key="show_ping"
+            app:title="@string/settings_general_show_ping"
+            app:useSimpleSummaryProvider="true" />
+
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/settings_category_udp_settings">
@@ -59,6 +64,18 @@
             app:key="tcp_server_port"
             app:title="@string/settings_tcp_server_port"
             app:useSimpleSummaryProvider="true" />
+
+        <Preference
+            app:key="communication_wait"
+            app:title="@string/settings_general_communication_wait"
+            app:summary="@string/settings_general_communication_wait_summary"
+            app:useSimpleSummaryProvider="false" />
+
+        <Preference
+            app:key="bidirectional_timeout"
+            app:title="@string/settings_general_bidirectional_timeout"
+            app:summary="@string/settings_general_bidirectional_timeout_summary"
+            app:useSimpleSummaryProvider="false" />
 
         <Preference
             app:key="tcp_common_passphrase"

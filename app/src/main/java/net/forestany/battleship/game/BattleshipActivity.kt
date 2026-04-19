@@ -42,9 +42,16 @@ class BattleshipActivity : AppCompatActivity() {
 
     enum class BoardState {
         PLACEMENT,
-        OWN_BOARD,
-        OTHER_BOARD,
-        OTHER_BOARD_TARGET,
+        PLACEMENT_FINISHED_SERVER,
+        PLACEMENT_FINISHED_CLIENT,
+        ROUND_SERVER_TARGET,
+        ROUND_CLIENT_TARGET,
+        ROUND_SERVER,
+        ROUND_CLIENT,
+        ROUND_SERVER_FINISHED,
+        ROUND_CLIENT_FINISHED,
+        ROUND_SERVER_KEEP,
+        ROUND_CLIENT_KEEP,
         END
     }
 
@@ -57,6 +64,7 @@ class BattleshipActivity : AppCompatActivity() {
 
     private lateinit var battleshipActivityViewGroup: ViewGroup
     private lateinit var gridTitle: TextView
+    private lateinit var ping: TextView
     private lateinit var gameMode: TextView
     private lateinit var recyclerView: RecyclerView
     private lateinit var recyclerViewAdapter: BattleshipGridAdapter
@@ -75,6 +83,7 @@ class BattleshipActivity : AppCompatActivity() {
     private var serverPort: Int = 0
     private var currentButtonState = ButtonState.HORIZONTAL
     private var targetCoordinate = Pair(-1, -1)
+    private var lastTargetCoordinate = Pair(-1, -1)
     private var amountShots = 0
     private var reloaded = false
 
@@ -193,6 +202,7 @@ class BattleshipActivity : AppCompatActivity() {
         //region activity layout elements
         battleshipActivityViewGroup = findViewById(android.R.id.content)
         gridTitle = findViewById(R.id.gridTitle)
+        ping = findViewById(R.id.ping)
         gameMode = findViewById(R.id.gameMode)
         recyclerView = findViewById(R.id.recyclerGrid)
         gameButton = findViewById(R.id.btnGame)
@@ -267,8 +277,32 @@ class BattleshipActivity : AppCompatActivity() {
             }
         }
 
+        val viewOwnBoard = (
+            (GlobalInstance.get().getBoardState() == BoardState.PLACEMENT)
+            ||
+            (GlobalInstance.get().getBoardState() == BoardState.PLACEMENT_FINISHED_CLIENT)
+            ||
+            (GlobalInstance.get().getBoardState() == BoardState.PLACEMENT_FINISHED_SERVER)
+            ||
+            ((!GlobalInstance.get().b_isServer) &&
+            (
+                (GlobalInstance.get().getBoardState() == BoardState.ROUND_SERVER_TARGET) ||
+                (GlobalInstance.get().getBoardState() == BoardState.ROUND_SERVER) ||
+                (GlobalInstance.get().getBoardState() == BoardState.ROUND_SERVER_FINISHED) ||
+                (GlobalInstance.get().getBoardState() == BoardState.ROUND_SERVER_KEEP)
+            ))
+            ||
+            ((GlobalInstance.get().b_isServer) &&
+            (
+                (GlobalInstance.get().getBoardState() == BoardState.ROUND_CLIENT_TARGET) ||
+                (GlobalInstance.get().getBoardState() == BoardState.ROUND_CLIENT) ||
+                (GlobalInstance.get().getBoardState() == BoardState.ROUND_CLIENT_FINISHED) ||
+                (GlobalInstance.get().getBoardState() == BoardState.ROUND_CLIENT_KEEP)
+            ))
+        )
+
         // update ui
-        updateGridTitle(gridTitle, !((GlobalInstance.get().getBoardState() == BoardState.OTHER_BOARD) || (GlobalInstance.get().getBoardState() == BoardState.OTHER_BOARD_TARGET)))
+        updateGridTitle(gridTitle,viewOwnBoard)
         updateGameMode(gameMode)
         val currentShip = recyclerViewAdapter.getCurrentShip()
         statusEditText.setText( Util.replacePlaceholders(
@@ -284,7 +318,7 @@ class BattleshipActivity : AppCompatActivity() {
         if (loadGameState) {
             statusEditText.setText( intent.extras?.getString("LAST_STATUS") ?: "" )
 
-            if ((GlobalInstance.get().getBoardState() == BoardState.OWN_BOARD)) {
+            if (viewOwnBoard) {
                 gameButton.visibility = View.GONE
             }
         }
@@ -301,9 +335,15 @@ class BattleshipActivity : AppCompatActivity() {
                 }
 
                 ButtonState.CONFIRM -> {
-                    // set all own fleet info for end state
+                    // set own fleet info for end state transfer later
                     GlobalInstance.get().setOwnGridEnd(recyclerViewAdapter.getOwnShipsEnd())
-                    GlobalInstance.get().setBoardState(BoardState.OWN_BOARD)
+                    GlobalInstance.get().setBoardState(
+                        if (GlobalInstance.get().b_isServer) {
+                            BoardState.PLACEMENT_FINISHED_SERVER
+                        } else {
+                            BoardState.PLACEMENT_FINISHED_CLIENT
+                        }
+                    )
                     gameButton.visibility = View.GONE
                     statusEditText.setText(getString(R.string.battleship_status_wait_other_player_finished_placement))
                 }
@@ -381,18 +421,16 @@ class BattleshipActivity : AppCompatActivity() {
                 if (GlobalInstance.get().b_isServer) {
                     if (
                         (!once) &&
-                        (GlobalInstance.get().getBoardState() == BoardState.OWN_BOARD) &&
-                        (GlobalInstance.get().getPreviousBoardState() == BoardState.PLACEMENT) &&
-                        (GlobalInstance.get().getOtherBoardState() == BoardState.OWN_BOARD) &&
-                        (GlobalInstance.get().getPreviousOtherBoardState() == BoardState.PLACEMENT)
+                        (GlobalInstance.get().getBoardState() == BoardState.PLACEMENT_FINISHED_SERVER) &&
+                        (GlobalInstance.get().getOtherBoardState() == BoardState.PLACEMENT_FINISHED_CLIENT)
                     ) {
                         // roll a dice to decide who to start
                         val dice = (1..6).random()
 
                         if (dice <= 3) {
-                            GlobalInstance.get().setBoardState(BoardState.OTHER_BOARD_TARGET)
+                            GlobalInstance.get().setBoardState(BoardState.ROUND_SERVER_TARGET)
                         } else {
-                            GlobalInstance.get().enqueueMessageBox("CLIENT_START")
+                            GlobalInstance.get().setBoardState(BoardState.ROUND_CLIENT_TARGET)
                         }
 
                         once = true
@@ -444,8 +482,8 @@ class BattleshipActivity : AppCompatActivity() {
                     }
 
                     debugViewStatus.text = """
-                        boardState | previousBoardState: ${GlobalInstance.get().getBoardState()} | ${GlobalInstance.get().getPreviousBoardState()}
-                        otherBoardState | previousOtherBoardState : ${GlobalInstance.get().getOtherBoardState()} | ${GlobalInstance.get().getPreviousOtherBoardState()}
+                        boardState | previousBoardState: ${GlobalInstance.get().getBoardState()}
+                        otherBoardState | previousOtherBoardState : ${GlobalInstance.get().getOtherBoardState()}
                         amount shots: $amountShots
                         ${GlobalInstance.get().getOtherGridEnd()}
                         $s_ownGrid
@@ -455,7 +493,7 @@ class BattleshipActivity : AppCompatActivity() {
                     //endregion
 
                     // save game state all 10 seconds
-                    if ((count != 0) && (count % 10 == 0)) {
+                    if ((count != 0) && (count % 20 == 0)) {
                         saveGameState()
                     }
 
@@ -495,11 +533,11 @@ class BattleshipActivity : AppCompatActivity() {
 
                     // state to choose a target
                     if (
-                        (GlobalInstance.get().getBoardState() == BoardState.OTHER_BOARD_TARGET) &&
-                        (GlobalInstance.get().getPreviousBoardState() == BoardState.OWN_BOARD) &&
+                        ((GlobalInstance.get().getBoardState() == BoardState.ROUND_CLIENT_TARGET) && (!GlobalInstance.get().b_isServer) ||
+                        (GlobalInstance.get().getBoardState() == BoardState.ROUND_SERVER_TARGET) && (GlobalInstance.get().b_isServer))
+                        &&
                         (
-                            (targetCoordinate.first < 0) ||
-                            (targetCoordinate.second < 0)
+                            (targetCoordinate.first < 0) || (targetCoordinate.second < 0)
                         )
                     ) {
                         if (!reloaded) {
@@ -512,26 +550,169 @@ class BattleshipActivity : AppCompatActivity() {
                             }
 
                             reloaded = true
-
-                            updateGridTitle(gridTitle, false)
                         }
 
                         statusEditText.setText(getString(R.string.battleship_status_choose_target))
+                        gameButton.visibility = View.VISIBLE
                     }
 
                     // state to wait for other players move
                     if (
-                        (GlobalInstance.get().getOtherBoardState() == BoardState.OTHER_BOARD_TARGET) &&
-                        (
-                            (GlobalInstance.get().getPreviousOtherBoardState() == BoardState.OWN_BOARD) ||
-                            (GlobalInstance.get().getPreviousOtherBoardState() == BoardState.PLACEMENT)
-                        )
+                        (((GlobalInstance.get().getBoardState() == BoardState.ROUND_CLIENT_TARGET) || (GlobalInstance.get().getBoardState() == BoardState.ROUND_CLIENT)) && (GlobalInstance.get().b_isServer) ||
+                        ((GlobalInstance.get().getBoardState() == BoardState.ROUND_SERVER_TARGET) || (GlobalInstance.get().getBoardState() == BoardState.ROUND_SERVER)) && (!GlobalInstance.get().b_isServer))
                     ) {
                         statusEditText.setText(getString(R.string.battleship_status_wait_other_move))
                     }
 
-                    // check in own board view if any ship has been destroyed completely
-                    if (GlobalInstance.get().getBoardState() == BoardState.OWN_BOARD) {
+                    // change states
+                    if (GlobalInstance.get().b_isServer) { // SERVER
+                        if (
+                            (GlobalInstance.get().getBoardState() == BoardState.ROUND_SERVER) &&
+                            (GlobalInstance.get().getOtherBoardState() == BoardState.ROUND_SERVER_FINISHED)
+                        ) {
+                            if ((lastTargetCoordinate.first >= 0) && (lastTargetCoordinate.second >= 0)) {
+                                if (
+                                    (GlobalInstance.get().b_gameAdditionalOptionOne) &&
+                                    (GlobalInstance.get().getOtherGridCellState(lastTargetCoordinate.second, lastTargetCoordinate.first) == CellState.HIT)
+                                ) {
+                                    amountShots++
+                                }
+
+                                lastTargetCoordinate = Pair(-1, -1)
+
+                                Handler(Looper.getMainLooper()).postDelayed(
+                            {
+                                    if (amountShots > 0) {
+                                        GlobalInstance.get().setBoardState(BoardState.ROUND_SERVER_KEEP)
+                                        statusEditText.setText(getString(R.string.battleship_status_continue))
+                                    } else {
+                                        GlobalInstance.get().setBoardState(BoardState.ROUND_CLIENT_TARGET)
+                                        updateGridTitle(gridTitle, true)
+                                        reloaded = false
+                                    }
+                                }, GlobalInstance.get().getPreferences()["communication_wait"].toString().toLong())
+                            }
+                        } else if (
+                            (GlobalInstance.get().getBoardState() == BoardState.ROUND_CLIENT_FINISHED) &&
+                            (GlobalInstance.get().getOtherBoardState() == BoardState.ROUND_SERVER_TARGET)
+                        ) {
+                            GlobalInstance.get().setBoardState(BoardState.ROUND_SERVER_TARGET)
+                            updateGridTitle(gridTitle, false)
+                        } else if (
+                            (GlobalInstance.get().getBoardState() == BoardState.ROUND_CLIENT_FINISHED) &&
+                            (GlobalInstance.get().getOtherBoardState() == BoardState.ROUND_CLIENT_KEEP)
+                        ) {
+                            GlobalInstance.get().setBoardState(BoardState.ROUND_CLIENT_KEEP)
+                            updateGridTitle(gridTitle, true)
+                        } else if (
+                            (GlobalInstance.get().getBoardState() == BoardState.ROUND_CLIENT_KEEP) &&
+                            (GlobalInstance.get().getOtherBoardState() == BoardState.ROUND_CLIENT_TARGET)
+                        ) {
+                            GlobalInstance.get().setBoardState(BoardState.ROUND_CLIENT_TARGET)
+                            updateGridTitle(gridTitle, true)
+                        } else if (
+                            (GlobalInstance.get().getBoardState() == BoardState.ROUND_SERVER_KEEP) &&
+                            (GlobalInstance.get().getOtherBoardState() == BoardState.ROUND_SERVER_KEEP)
+                        ) {
+                            GlobalInstance.get().setBoardState(BoardState.ROUND_SERVER_TARGET)
+                            updateGridTitle(gridTitle, false)
+                        } else if (
+                            (GlobalInstance.get().getOtherBoardState() == BoardState.PLACEMENT_FINISHED_CLIENT) &&
+                            (
+                                (GlobalInstance.get().getBoardState() == BoardState.ROUND_CLIENT_TARGET) ||
+                                (GlobalInstance.get().getBoardState() == BoardState.ROUND_SERVER_TARGET)
+                            )
+                        ) {
+                            if (GlobalInstance.get().getBoardState() == BoardState.ROUND_CLIENT_TARGET) {
+                                updateGridTitle(gridTitle, true)
+                            } else {
+                                updateGridTitle(gridTitle, false)
+                            }
+                        }
+                    }
+                    else // CLIENT
+                    {
+                        if (
+                            (GlobalInstance.get().getBoardState() == BoardState.ROUND_CLIENT) &&
+                            (GlobalInstance.get().getOtherBoardState() == BoardState.ROUND_CLIENT_FINISHED)
+                        ) {
+                            if ((lastTargetCoordinate.first >= 0) && (lastTargetCoordinate.second >= 0)) {
+                                if (
+                                    (GlobalInstance.get().b_gameAdditionalOptionOne) &&
+                                    (GlobalInstance.get().getOtherGridCellState(lastTargetCoordinate.second, lastTargetCoordinate.first) == CellState.HIT)
+                                ) {
+                                    amountShots++
+                                }
+
+                                lastTargetCoordinate = Pair(-1, -1)
+
+                                Handler(Looper.getMainLooper()).postDelayed(
+                                {
+                                    if (amountShots > 0) {
+                                        GlobalInstance.get().setBoardState(BoardState.ROUND_CLIENT_KEEP)
+                                        statusEditText.setText(getString(R.string.battleship_status_continue))
+                                    } else {
+                                        GlobalInstance.get().setBoardState(BoardState.ROUND_SERVER_TARGET)
+                                        updateGridTitle(gridTitle, true)
+                                        reloaded = false
+                                    }
+                                }, GlobalInstance.get().getPreferences()["communication_wait"].toString().toLong())
+                            }
+                        } else if (
+                            (GlobalInstance.get().getBoardState() == BoardState.ROUND_SERVER_FINISHED) &&
+                            (GlobalInstance.get().getOtherBoardState() == BoardState.ROUND_CLIENT_TARGET)
+                        ) {
+                            GlobalInstance.get().setBoardState(BoardState.ROUND_CLIENT_TARGET)
+                            updateGridTitle(gridTitle, false)
+                        } else if (
+                            (GlobalInstance.get().getBoardState() == BoardState.ROUND_SERVER_FINISHED) &&
+                            (GlobalInstance.get().getOtherBoardState() == BoardState.ROUND_SERVER_KEEP)
+                        ) {
+                            GlobalInstance.get().setBoardState(BoardState.ROUND_SERVER_KEEP)
+                            updateGridTitle(gridTitle, true)
+                        } else if (
+                            (GlobalInstance.get().getBoardState() == BoardState.ROUND_SERVER_KEEP) &&
+                            (GlobalInstance.get().getOtherBoardState() == BoardState.ROUND_SERVER_TARGET)
+                        ) {
+                            GlobalInstance.get().setBoardState(BoardState.ROUND_SERVER_TARGET)
+                            updateGridTitle(gridTitle, true)
+                        } else if (
+                            (GlobalInstance.get().getBoardState() == BoardState.ROUND_CLIENT_KEEP) &&
+                            (GlobalInstance.get().getOtherBoardState() == BoardState.ROUND_CLIENT_KEEP)
+                        ) {
+                            GlobalInstance.get().setBoardState(BoardState.ROUND_CLIENT_TARGET)
+                            updateGridTitle(gridTitle, false)
+                        } else if (
+                            (GlobalInstance.get().getBoardState() == BoardState.PLACEMENT_FINISHED_CLIENT) &&
+                            (
+                                (GlobalInstance.get().getOtherBoardState() == BoardState.ROUND_CLIENT_TARGET) ||
+                                (GlobalInstance.get().getOtherBoardState() == BoardState.ROUND_SERVER_TARGET)
+                            )
+                        ) {
+                            GlobalInstance.get().setBoardState(GlobalInstance.get().getOtherBoardState())
+
+                            if (GlobalInstance.get().getBoardState() == BoardState.ROUND_CLIENT_TARGET) {
+                                updateGridTitle(gridTitle, false)
+                            } else {
+                                updateGridTitle(gridTitle, true)
+                            }
+                        }
+                    }
+
+                    // check as passive player if any ship has been destroyed completely
+                    if (
+                        ((GlobalInstance.get().b_isServer) && ( // SERVER
+                            (GlobalInstance.get().getBoardState() == BoardState.ROUND_CLIENT_TARGET) ||
+                            (GlobalInstance.get().getBoardState() == BoardState.ROUND_CLIENT) ||
+                            (GlobalInstance.get().getBoardState() == BoardState.ROUND_CLIENT_FINISHED)
+                        ))
+                        ||
+                        ((!GlobalInstance.get().b_isServer) && ( // CLIENT
+                            (GlobalInstance.get().getBoardState() == BoardState.ROUND_SERVER_TARGET) ||
+                            (GlobalInstance.get().getBoardState() == BoardState.ROUND_SERVER) ||
+                            (GlobalInstance.get().getBoardState() == BoardState.ROUND_SERVER_FINISHED)
+                        ))
+                    ) {
                         val ship = recyclerViewAdapter.checkShipDestroyed()
 
                         if (ship != null) {
@@ -587,6 +768,15 @@ class BattleshipActivity : AppCompatActivity() {
                     // update recycler view
                     recyclerViewAdapter.upgradeGridTiles()
                     updateGameMode(gameMode)
+
+                    // update ping if activated
+                    if (GlobalInstance.get().getPreferences()["show_ping"] as Boolean) {
+                        val s_foo = "${GlobalInstance.get().getPing()} ms"
+                        ping.text = s_foo
+                        ping.visibility = View.VISIBLE
+                    } else {
+                        ping.visibility = View.GONE
+                    }
                 }
 
                 // check for closed server flag
@@ -603,7 +793,7 @@ class BattleshipActivity : AppCompatActivity() {
                     break
                 }
 
-                Thread.sleep(1000)
+                Thread.sleep(500)
             } catch (_: InterruptedException) {
                 break
             } finally {
@@ -631,7 +821,7 @@ class BattleshipActivity : AppCompatActivity() {
 
                 out.println("${gameName}|${GlobalInstance.get().s_gameMode}|${if (GlobalInstance.get().b_gameAdditionalOptionOne) "true" else "false"}|${if (GlobalInstance.get().b_gameAdditionalOptionTwo) "true" else "false"}|${storedFleetIndex}")
                 out.println("${serverIp}|${serverPort}|${userName}")
-                out.println("${GlobalInstance.get().getBoardState()}|${GlobalInstance.get().getPreviousBoardState()}|${GlobalInstance.get().getOtherBoardState()}|${GlobalInstance.get().getPreviousOtherBoardState()}|$amountShots|$currentButtonState")
+                out.println("${GlobalInstance.get().getBoardState()}|${GlobalInstance.get().getOtherBoardState()}|$amountShots|$currentButtonState")
                 out.println(statusEditText.text.toString())
 
                 var foo = ""
@@ -875,33 +1065,20 @@ class BattleshipActivity : AppCompatActivity() {
 
     private fun onAfterFireTarget(x: Int, y: Int) {
         targetCoordinate = Pair(-1, -1)
-        GlobalInstance.get().setBoardState(BoardState.OTHER_BOARD)
+        lastTargetCoordinate = Pair(x, y)
+        // change own state, so that you cannot target and fire again while waiting for other side's answer
+        GlobalInstance.get().setBoardState(
+            if (GlobalInstance.get().b_isServer) {
+                BoardState.ROUND_SERVER
+            } else {
+                BoardState.ROUND_CLIENT
+            }
+        )
         gameButton.visibility = View.GONE
         statusEditText.setText(getString(R.string.battleship_status_fired_to_target, printCoordinate(x, y)))
         GlobalInstance.get().enqueueMessageBox("FIRE;$x;$y")
         amountShots--
         SoundManager.playSound(1)
-
-        Handler(Looper.getMainLooper()).postDelayed(
-            {
-                if (GlobalInstance.get().getBoardState() != BoardState.END) {
-                    if ((GlobalInstance.get().b_gameAdditionalOptionOne) && (GlobalInstance.get().getOtherGridCellState(y, x) == CellState.HIT)) {
-                        amountShots++
-                    }
-
-                    if (amountShots > 0) {
-                        GlobalInstance.get().setBoardState(BoardState.OTHER_BOARD_TARGET)
-                        statusEditText.setText(getString(R.string.battleship_status_choose_another_target))
-                        gameButton.visibility = View.VISIBLE
-                    } else {
-                        GlobalInstance.get().setBoardState(BoardState.OWN_BOARD)
-                        updateGridTitle(gridTitle, true)
-                        GlobalInstance.get().enqueueMessageBox("ROUND_FINISHED")
-                        reloaded = false
-                    }
-                }
-            }, 3500
-        )
     }
 
     private fun printCoordinate(x: Int, y: Int): String {
@@ -1056,9 +1233,7 @@ class BattleshipActivity : AppCompatActivity() {
         GlobalInstance.get().clearSnackbarBox()
 
         GlobalInstance.get().setBoardState(BoardState.PLACEMENT)
-        GlobalInstance.get().setPreviousBoardState(BoardState.PLACEMENT)
         GlobalInstance.get().setOtherBoardState(BoardState.PLACEMENT)
-        GlobalInstance.get().setPreviousOtherBoardState(BoardState.PLACEMENT)
 
         GlobalInstance.get().resetOwnGrid()
         GlobalInstance.get().resetOtherGrid()

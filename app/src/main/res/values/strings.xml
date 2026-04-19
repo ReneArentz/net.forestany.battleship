@@ -115,7 +115,7 @@
     <string name="battleship_status_all_ships_placed">All ships have been placed on the grid.</string>
     <string name="battleship_status_wait_other_player_finished_placement">Please wait until the other player has finished placing their fleet.</string>
     <string name="battleship_status_choose_target">Please choose a coordinate as target.</string>
-    <string name="battleship_status_choose_another_target">Please choose a coordinate as target.</string>
+    <string name="battleship_status_continue">You can select another target right away.</string>
     <string name="battleship_status_wait_other_move">Wait for other players move.</string>
     <string name="battleship_status_marked_target">%1$s marked as target.</string>
     <string name="battleship_status_cannot_mark_target">Cannot mark %1$s as target.</string>
@@ -145,6 +145,7 @@
     <string name="settings_general_grid_cell_padding">Grid cell padding</string>
     <string name="settings_general_grid_cell_padding_summary">Choose a value between 0 and 10</string>
     <string name="settings_general_sound_effects">Sound effects</string>
+    <string name="settings_general_show_ping">Show Ping</string>
 
     <string name="settings_category_udp_settings">UDP Settings</string>
     <string name="settings_udp_network_interface_name">UDP Network Interface Name</string>
@@ -154,6 +155,10 @@
 
     <string name="settings_category_tcp_settings">TCP Settings</string>
     <string name="settings_tcp_server_port">Server Port</string>
+    <string name="settings_general_communication_wait">Communication Wait(ms)</string>
+    <string name="settings_general_communication_wait_summary">Choose a value between 1 and 5000</string>
+    <string name="settings_general_bidirectional_timeout">Bidirectional Timeout(ms)</string>
+    <string name="settings_general_bidirectional_timeout_summary">Choose a value between 1 and 200</string>
     <string name="settings_tcp_common_passphrase">Common Passphrase</string>
     <string name="settings_tcp_encryption">Use encryption</string>
 

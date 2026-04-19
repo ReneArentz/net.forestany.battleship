@@ -16,9 +16,7 @@ class GameState {
     var serverPort: Int = 0
     var userName: String = ""
     var ownBoardState: String = ""
-    var previousOwnBoardState: String = ""
     var otherBoardState: String = ""
-    var previousOtherBoardState: String = ""
     var amountShots: Int = 0
     var buttonState: String = ""
     var lastStatus: String = ""

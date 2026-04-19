@@ -96,6 +96,26 @@ class SettingsActivity : AppCompatActivity() {
                     ).show(parentFragmentManager, "slider_dialog_2")
                     true
                 }
+                "communication_wait" -> {
+                    SliderDialogFragment.newInstance(
+                        prefKey = "communication_wait",
+                        title = getString(R.string.settings_general_communication_wait),
+                        min = 1,
+                        max = 5000,
+                        defaultValue = 2500
+                    ).show(parentFragmentManager, "slider_dialog_3")
+                    true
+                }
+                "bidirectional_timeout" -> {
+                    SliderDialogFragment.newInstance(
+                        prefKey = "bidirectional_timeout",
+                        title = getString(R.string.settings_general_bidirectional_timeout),
+                        min = 1,
+                        max = 200,
+                        defaultValue = 50
+                    ).show(parentFragmentManager, "slider_dialog_4")
+                    true
+                }
                 "tcp_common_passphrase" -> {
                     PasswordDialogFragment.newInstance(
                         prefKey = "tcp_common_passphrase",
@@ -228,6 +248,36 @@ class SettingsActivity : AppCompatActivity() {
                     wrongValue = true
                 } else if (Integer.parseInt(value.toString()) > 65535) {
                     exceptionMessage = getString(R.string.settings_value_to_high, 65535)
+                    wrongValue = true
+                }
+            } else if (key.contentEquals("communication_wait")) {
+                // not empty, isInt, between 1 and 5000
+                if (value.toString().isEmpty()) {
+                    exceptionMessage = getString(R.string.settings_value_empty)
+                    wrongValue = true
+                } else if (!net.forestany.forestj.lib.Helper.isInteger(value.toString())) {
+                    exceptionMessage = getString(R.string.settings_value_is_not_integer)
+                    wrongValue = true
+                } else if (Integer.parseInt(value.toString()) < 1) {
+                    exceptionMessage = getString(R.string.settings_value_to_low, 1)
+                    wrongValue = true
+                } else if (Integer.parseInt(value.toString()) > 5000) {
+                    exceptionMessage = getString(R.string.settings_value_to_high, 5000)
+                    wrongValue = true
+                }
+            } else if (key.contentEquals("bidirectional_timeout")) {
+                // not empty, isInt, between 1 and 200
+                if (value.toString().isEmpty()) {
+                    exceptionMessage = getString(R.string.settings_value_empty)
+                    wrongValue = true
+                } else if (!net.forestany.forestj.lib.Helper.isInteger(value.toString())) {
+                    exceptionMessage = getString(R.string.settings_value_is_not_integer)
+                    wrongValue = true
+                } else if (Integer.parseInt(value.toString()) < 1) {
+                    exceptionMessage = getString(R.string.settings_value_to_low, 1)
+                    wrongValue = true
+                } else if (Integer.parseInt(value.toString()) > 200) {
+                    exceptionMessage = getString(R.string.settings_value_to_high, 200)
                     wrongValue = true
                 }
             } else if (key.contentEquals("tcp_common_passphrase")) {

@@ -33,7 +33,7 @@ class BattleshipGridAdapter(
         TARGET      // #
     }
 
-    inner class CellViewHolder(frame: FrameLayout, val image: ImageView) : RecyclerView.ViewHolder(frame)
+    class CellViewHolder(frame: FrameLayout, val image: ImageView) : RecyclerView.ViewHolder(frame)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CellViewHolder {
         val frame = FrameLayout(parent.context).apply {
@@ -66,7 +66,9 @@ class BattleshipGridAdapter(
 
         // show recycler view tiles depending on board state and cell state
         when (GlobalInstance.get().getBoardState()) {
-            BattleshipActivity.BoardState.PLACEMENT -> {
+            BattleshipActivity.BoardState.PLACEMENT,
+            BattleshipActivity.BoardState.PLACEMENT_FINISHED_SERVER,
+            BattleshipActivity.BoardState.PLACEMENT_FINISHED_CLIENT -> {
                 if (ownState == CellState.SHIP) {
                     holder.image.setImageResource(getOwnShipPart(row, col, false))
                 } else {
@@ -74,30 +76,44 @@ class BattleshipGridAdapter(
                 }
             }
 
-            BattleshipActivity.BoardState.OWN_BOARD -> {
-                when (ownState) {
-                    CellState.SHIP -> holder.image.setImageResource(getOwnShipPart(row, col, false))
-                    CellState.HIT -> holder.image.setImageResource(getOwnShipPart(row, col, true))
-                    CellState.MISS -> holder.image.setImageResource(R.drawable.tile_miss)
-                    else -> holder.image.setImageResource(R.drawable.tile_water)
-                }
+            BattleshipActivity.BoardState.ROUND_SERVER_TARGET,
+            BattleshipActivity.BoardState.ROUND_SERVER,
+            BattleshipActivity.BoardState.ROUND_SERVER_FINISHED,
+            BattleshipActivity.BoardState.ROUND_SERVER_KEEP -> {
+                if (!GlobalInstance.get().b_isServer)
+                    when (ownState) {
+                        CellState.SHIP -> holder.image.setImageResource(getOwnShipPart(row, col, false))
+                        CellState.HIT -> holder.image.setImageResource(getOwnShipPart(row, col, true))
+                        CellState.MISS -> holder.image.setImageResource(R.drawable.tile_miss)
+                        else -> holder.image.setImageResource(R.drawable.tile_water)
+                    }
+                else
+                    when (otherState) {
+                        CellState.HIT -> holder.image.setImageResource(R.drawable.ship_single_hit)
+                        CellState.MISS -> holder.image.setImageResource(R.drawable.tile_miss)
+                        CellState.TARGET -> holder.image.setImageResource(R.drawable.crosshair)
+                        else -> holder.image.setImageResource(R.drawable.tile_water)
+                    }
             }
 
-            BattleshipActivity.BoardState.OTHER_BOARD -> {
-                when (otherState) {
-                    CellState.HIT -> holder.image.setImageResource(R.drawable.ship_single_hit)
-                    CellState.MISS -> holder.image.setImageResource(R.drawable.tile_miss)
-                    else -> holder.image.setImageResource(R.drawable.tile_water)
-                }
-            }
-
-            BattleshipActivity.BoardState.OTHER_BOARD_TARGET -> {
-                when (otherState) {
-                    CellState.HIT -> holder.image.setImageResource(R.drawable.ship_single_hit)
-                    CellState.MISS -> holder.image.setImageResource(R.drawable.tile_miss)
-                    CellState.TARGET -> holder.image.setImageResource(R.drawable.crosshair)
-                    else -> holder.image.setImageResource(R.drawable.tile_water)
-                }
+            BattleshipActivity.BoardState.ROUND_CLIENT_TARGET,
+            BattleshipActivity.BoardState.ROUND_CLIENT,
+            BattleshipActivity.BoardState.ROUND_CLIENT_FINISHED,
+            BattleshipActivity.BoardState.ROUND_CLIENT_KEEP -> {
+                if (GlobalInstance.get().b_isServer)
+                    when (ownState) {
+                        CellState.SHIP -> holder.image.setImageResource(getOwnShipPart(row, col, false))
+                        CellState.HIT -> holder.image.setImageResource(getOwnShipPart(row, col, true))
+                        CellState.MISS -> holder.image.setImageResource(R.drawable.tile_miss)
+                        else -> holder.image.setImageResource(R.drawable.tile_water)
+                    }
+                else
+                    when (otherState) {
+                        CellState.HIT -> holder.image.setImageResource(R.drawable.ship_single_hit)
+                        CellState.MISS -> holder.image.setImageResource(R.drawable.tile_miss)
+                        CellState.TARGET -> holder.image.setImageResource(R.drawable.crosshair)
+                        else -> holder.image.setImageResource(R.drawable.tile_water)
+                    }
             }
 
             BattleshipActivity.BoardState.END -> {
@@ -108,6 +124,10 @@ class BattleshipGridAdapter(
                     else -> holder.image.setImageResource(R.drawable.tile_water)
                 }
             }
+
+//            else -> {
+//                holder.image.setImageResource(R.drawable.crosshair)
+//            }
         }
 
         // on click listener for recycler view tile
@@ -123,7 +143,15 @@ class BattleshipGridAdapter(
                     }
                 }
 
-                BattleshipActivity.BoardState.OTHER_BOARD_TARGET -> targetShot(row, col)
+                BattleshipActivity.BoardState.ROUND_SERVER_TARGET -> {
+                    if (GlobalInstance.get().b_isServer)
+                        targetShot(row, col)
+                }
+
+                BattleshipActivity.BoardState.ROUND_CLIENT_TARGET -> {
+                    if (!GlobalInstance.get().b_isServer)
+                        targetShot(row, col)
+                }
 
                 else -> {
 
@@ -517,7 +545,7 @@ class BattleshipGridAdapter(
             for (i in 0 ..< GRID_ROWS) {
                 for (j in 0 ..< GRID_COLS) {
                     if (GlobalInstance.get().getOtherGrid()[i][j] == CellState.TARGET) {
-                        GlobalInstance.get().getOtherGrid()[i][j] = GlobalInstance.get().getOtherNoTargetGridCellState(i, j)//CellState.EMPTY
+                        GlobalInstance.get().getOtherGrid()[i][j] = GlobalInstance.get().getOtherNoTargetGridCellState(i, j)
                     }
                 }
             }
@@ -530,7 +558,7 @@ class BattleshipGridAdapter(
             for (i in 0 ..< GRID_ROWS) {
                 for (j in 0 ..< GRID_COLS) {
                     if (GlobalInstance.get().getOtherGrid()[i][j] == CellState.TARGET) {
-                        GlobalInstance.get().getOtherGrid()[i][j] = GlobalInstance.get().getOtherNoTargetGridCellState(i, j)//CellState.EMPTY
+                        GlobalInstance.get().getOtherGrid()[i][j] = GlobalInstance.get().getOtherNoTargetGridCellState(i, j)
                     }
                 }
             }

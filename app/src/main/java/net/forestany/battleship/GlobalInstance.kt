@@ -44,23 +44,27 @@ class GlobalInstance {
     var b_gameAdditionalOptionTwo: Boolean = false
     var i_fleetIndex: Int = 0
 
+    private val o_lockPing = ReentrantLock()
+    private var l_ping: Long = 0
+
+    fun getPing(): Long {
+        var l_foo: Long
+
+        o_lockPing.withLock {
+            l_foo = l_ping
+        }
+
+        return l_foo
+    }
+
+    fun setPing(p_l_value: Long) {
+        o_lockPing.withLock {
+            l_ping = p_l_value
+        }
+    }
+
     private var o_lockBoardState = ReentrantLock()
-    private var previousBoardState: BattleshipActivity.BoardState = BattleshipActivity.BoardState.PLACEMENT
     private var boardState: BattleshipActivity.BoardState = BattleshipActivity.BoardState.PLACEMENT
-
-    fun getPreviousBoardState(): BattleshipActivity.BoardState {
-        o_lockBoardState.withLock {
-            return previousBoardState
-        }
-    }
-
-    fun setPreviousBoardState(newPreviousBoardState: BattleshipActivity.BoardState) {
-        if (previousBoardState != newPreviousBoardState) {
-            o_lockBoardState.withLock {
-                previousBoardState = newPreviousBoardState
-            }
-        }
-    }
 
     fun getBoardState(): BattleshipActivity.BoardState {
         o_lockBoardState.withLock {
@@ -71,29 +75,14 @@ class GlobalInstance {
     fun setBoardState(newBoardState: BattleshipActivity.BoardState) {
         if (boardState != newBoardState) {
             o_lockBoardState.withLock {
-                previousBoardState = boardState
                 boardState = newBoardState
+                //android.util.Log.v("Global", "changed board state to:\t$boardState")
             }
         }
     }
 
     private var o_lockOtherBoardState = ReentrantLock()
-    private var previousOtherBoardState: BattleshipActivity.BoardState = BattleshipActivity.BoardState.PLACEMENT
     private var otherBoardState: BattleshipActivity.BoardState = BattleshipActivity.BoardState.PLACEMENT
-
-    fun getPreviousOtherBoardState(): BattleshipActivity.BoardState {
-        o_lockOtherBoardState.withLock {
-            return previousOtherBoardState
-        }
-    }
-
-    fun setPreviousOtherBoardState(newPreviousOtherBoardState: BattleshipActivity.BoardState) {
-        if (previousOtherBoardState != newPreviousOtherBoardState) {
-            o_lockOtherBoardState.withLock {
-                previousOtherBoardState = newPreviousOtherBoardState
-            }
-        }
-    }
 
     fun getOtherBoardState(): BattleshipActivity.BoardState {
         o_lockOtherBoardState.withLock {
@@ -104,7 +93,6 @@ class GlobalInstance {
     fun setOtherBoardState(newOtherBoardState: BattleshipActivity.BoardState) {
         if (otherBoardState != newOtherBoardState) {
             o_lockOtherBoardState.withLock {
-                previousOtherBoardState = otherBoardState
                 otherBoardState = newOtherBoardState
             }
         }

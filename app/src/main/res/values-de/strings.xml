@@ -115,7 +115,7 @@
     <string name="battleship_status_all_ships_placed">Alle Schiffe wurden auf dem Raster platziert.</string>
     <string name="battleship_status_wait_other_player_finished_placement">Bitte warten, bis der andere Spieler seine Flotte platziert hat.</string>
     <string name="battleship_status_choose_target">Bitte wähle eine Koordinate als Ziel aus.</string>
-    <string name="battleship_status_choose_another_target">Bitte wähle eine andere Koordinate als Ziel.</string>
+    <string name="battleship_status_continue">Sie können gleich ein weiteres Ziel auswählen.</string>
     <string name="battleship_status_wait_other_move">Warten bis der andere Spieler den Zug gemacht haben.</string>
     <string name="battleship_status_marked_target">%1$s als Ziel markiert.</string>
     <string name="battleship_status_cannot_mark_target">Kann nicht %1$s als Ziel markieren.</string>
@@ -145,6 +145,7 @@
     <string name="settings_general_grid_cell_padding">Gitterzellenabstand</string>
     <string name="settings_general_grid_cell_padding_summary">Wählen Sie einen Wert zwischen 0 und 10</string>
     <string name="settings_general_sound_effects">Soundeffekte</string>
+    <string name="settings_general_show_ping">Zeige Ping</string>
 
     <string name="settings_category_udp_settings">UDP Einstellungen</string>
     <string name="settings_udp_network_interface_name">UDP Netzwerkschnittstellen-Name</string>
@@ -154,6 +155,10 @@
 
     <string name="settings_category_tcp_settings">TCP Einstellungen</string>
     <string name="settings_tcp_server_port">Server Port</string>
+    <string name="settings_general_communication_wait">Kommunikation Wartezeit(ms)</string>
+    <string name="settings_general_communication_wait_summary">Wählen Sie einen Wert zwischen 1 und 5000</string>
+    <string name="settings_general_bidirectional_timeout">Bidirektionales Timeout(ms)</string>
+    <string name="settings_general_bidirectional_timeout_summary">Wählen Sie einen Wert zwischen 1 und 200</string>
     <string name="settings_tcp_common_passphrase">Gemeinsames Passwort</string>
     <string name="settings_tcp_encryption">Verschlüsselung aktiv</string>
 

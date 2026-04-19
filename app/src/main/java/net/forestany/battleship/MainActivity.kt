@@ -74,11 +74,14 @@ class MainActivity : AppCompatActivity() {
         const val SETTINGS_GRID_CELL_SIZE = "32"
         const val SETTINGS_GRID_CELL_PADDING = "2"
         const val SETTINGS_SOUND_EFFECTS = "false"
+        const val SETTINGS_SHOW_PING = "false"
         const val SETTINGS_UDP_NETWORK_INTERFACE_NAME = "wlan0"
         const val SETTINGS_UDP_MULTICAST_IP = "224.0.0.1" //"FF05:0:0:0:0:0:0:342"
         const val SETTINGS_UDP_MULTICAST_PORT = "12805"
         const val SETTINGS_UDP_MULTICAST_TTL = "5"
         const val SETTINGS_TCP_SERVER_PORT = "12365"
+        const val SETTINGS_COMMUNICATION_WAIT = "2500"
+        const val SETTINGS_BIDIRECTIONAL_TIMEOUT = "50"
         const val SETTINGS_TCP_COMMON_PASSPHRASE = "1234567890abcdefghijklmnopqrstuvwxyz"
         const val SETTINGS_TCP_ENCRYPTION = "false"
 
@@ -103,9 +106,9 @@ class MainActivity : AppCompatActivity() {
                         if (i == 0) {
                             gameStateTemp.timestamp = net.forestany.forestj.lib.Helper.fromISO8601UTC(line)
                         } else if (i == 1) {
-                            gameStateTemp.userType = line!!
+                            gameStateTemp.userType = line
                         } else if (i == 2) {
-                            val a_foo = line!!.split("|")
+                            val a_foo = line.split("|")
 
                             if (a_foo.size == 5) {
                                 gameStateTemp.gameName = a_foo[0]
@@ -115,7 +118,7 @@ class MainActivity : AppCompatActivity() {
                                 gameStateTemp.gameFleetIndex = a_foo[4].toInt()
                             }
                         } else if (i == 3) {
-                            val a_foo = line!!.split("|")
+                            val a_foo = line.split("|")
 
                             if (a_foo.size == 3) {
                                 gameStateTemp.serverIp = a_foo[0]
@@ -123,25 +126,23 @@ class MainActivity : AppCompatActivity() {
                                 gameStateTemp.userName = a_foo[2]
                             }
                         } else if (i == 4) {
-                            val a_foo = line!!.split("|")
+                            val a_foo = line.split("|")
 
-                            if (a_foo.size == 6) {
+                            if (a_foo.size == 4) {
                                 gameStateTemp.ownBoardState = a_foo[0]
-                                gameStateTemp.previousOwnBoardState = a_foo[1]
-                                gameStateTemp.otherBoardState = a_foo[2]
-                                gameStateTemp.previousOtherBoardState = a_foo[3]
-                                gameStateTemp.amountShots = a_foo[4].toInt()
-                                gameStateTemp.buttonState = a_foo[5]
+                                gameStateTemp.otherBoardState = a_foo[1]
+                                gameStateTemp.amountShots = a_foo[2].toInt()
+                                gameStateTemp.buttonState = a_foo[3]
                             }
                         } else if (i == 5) {
-                            gameStateTemp.lastStatus = line ?: ""
+                            gameStateTemp.lastStatus = line
                         } else if (i == 6) {
-                            if (line!!.length == 100) {
+                            if (line.length == 100) {
                                 var l = 0
 
                                 for (j in 0..<GRID_ROWS) {
                                     for (k in 0..<GRID_COLS) {
-                                        gameStateTemp.ownGrid[j][k] = when (line!![l++]) {
+                                        gameStateTemp.ownGrid[j][k] = when (line[l++]) {
                                             '~' -> CellState.EMPTY
                                             '.' -> CellState.MISS
                                             'o' -> CellState.SHIP
@@ -153,12 +154,12 @@ class MainActivity : AppCompatActivity() {
                                 }
                             }
                         } else if (i == 7) {
-                            if (line!!.length == 100) {
+                            if (line.length == 100) {
                                 var l = 0
 
                                 for (j in 0..<GRID_ROWS) {
                                     for (k in 0..<GRID_COLS) {
-                                        gameStateTemp.otherGrid[j][k] = when (line!![l++]) {
+                                        gameStateTemp.otherGrid[j][k] = when (line[l++]) {
                                             '~' -> CellState.EMPTY
                                             '.' -> CellState.MISS
                                             'o' -> CellState.SHIP
@@ -170,14 +171,14 @@ class MainActivity : AppCompatActivity() {
                                 }
                             }
                         } else if (i == 8) {
-                            gameStateTemp.fleetString = line ?: ""
+                            gameStateTemp.fleetString = line
                         }
 
                         i++
                     }
 
                     inputStream.close()
-                } catch (e: java.io.IOException) {
+                } catch (_: java.io.IOException) {
                     gameStateTemp = null
                 }
             }
@@ -379,6 +380,7 @@ class MainActivity : AppCompatActivity() {
         //o_loggingConfigAll.level = java.util.logging.Level.FINER
         //o_loggingConfigAll.level = java.util.logging.Level.FINEST
         //o_loggingConfigAll.level = java.util.logging.Level.ALL
+        //o_loggingConfigAll.useConsole = true
         o_loggingConfigAll.useConsole = false
 
         o_loggingConfigAll.consoleLevel = java.util.logging.Level.OFF
@@ -413,8 +415,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun getAllWifiIpv4Addresses(context: Context): List<String> {
         val ipv4Addresses = mutableListOf<String>()
-        val connectivityManager =
-            context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val network = connectivityManager.activeNetwork
         val networkCapabilities = connectivityManager.getNetworkCapabilities(network)
 
@@ -500,7 +501,7 @@ class MainActivity : AppCompatActivity() {
 //            val intent = Intent(this, BattleshipActivity::class.java)
 //
 //            intent.putExtra("GAME_NAME", "test game name")
-//            intent.putExtra("GAME_MODE", GAME_MODE_SHOT_EACH_SHIP)
+//            intent.putExtra("GAME_MODE", GAME_MODE_ALTERNATE)
 //            intent.putExtra("GAME_ADDITIONAL_OPTION_ONE", "1")
 //            intent.putExtra("GAME_ADDITIONAL_OPTION_TWO", "0")
 //            intent.putExtra("GAME_FLEET_INDEX", "0")
@@ -577,6 +578,9 @@ class MainActivity : AppCompatActivity() {
             adapterGameMode.setDropDownViewResource(android.R.layout.select_dialog_singlechoice)
             sp_gameMode.adapter = adapterGameMode
 
+            // pre-select first option
+            sp_gameMode.setSelection(1)
+
             var selectedGameFleet = 0
 
             sp_gameFleet.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -598,6 +602,9 @@ class MainActivity : AppCompatActivity() {
             val adapterGameFleet = ArrayAdapter(this, android.R.layout.simple_spinner_item, gameFleets)
             adapterGameFleet.setDropDownViewResource(android.R.layout.select_dialog_singlechoice)
             sp_gameFleet.adapter = adapterGameFleet
+
+            // pre-select first option
+            sp_gameFleet.setSelection(0)
 
             showAlertDialog(getString(R.string.main_create_game_title), dialogView) {
                 if (selectedNetworkInterface == getString(R.string.no_network_interfaces)) {
@@ -728,47 +735,39 @@ class MainActivity : AppCompatActivity() {
     private fun loadGameBoardSettingsFromGameState() {
         // set board state
         val ownBoardState: BattleshipActivity.BoardState = when (gameState?.ownBoardState) {
-            "OWN_BOARD" -> BattleshipActivity.BoardState.OWN_BOARD
-            "OTHER_BOARD" -> BattleshipActivity.BoardState.OTHER_BOARD
-            "OTHER_BOARD_TARGET" -> BattleshipActivity.BoardState.OTHER_BOARD_TARGET
+            "PLACEMENT_FINISHED_SERVER" -> BattleshipActivity.BoardState.PLACEMENT_FINISHED_SERVER
+            "PLACEMENT_FINISHED_CLIENT" -> BattleshipActivity.BoardState.PLACEMENT_FINISHED_CLIENT
+            "ROUND_SERVER" -> BattleshipActivity.BoardState.ROUND_SERVER
+            "ROUND_CLIENT" -> BattleshipActivity.BoardState.ROUND_CLIENT
+            "ROUND_SERVER_TARGET" -> BattleshipActivity.BoardState.ROUND_SERVER_TARGET
+            "ROUND_CLIENT_TARGET" -> BattleshipActivity.BoardState.ROUND_CLIENT_TARGET
+            "ROUND_SERVER_FINISHED" -> BattleshipActivity.BoardState.ROUND_SERVER_FINISHED
+            "ROUND_CLIENT_FINISHED" -> BattleshipActivity.BoardState.ROUND_CLIENT_FINISHED
+            "ROUND_SERVER_KEEP" -> BattleshipActivity.BoardState.ROUND_SERVER_KEEP
+            "ROUND_CLIENT_KEEP" -> BattleshipActivity.BoardState.ROUND_CLIENT_KEEP
             "END" -> BattleshipActivity.BoardState.END
             else -> BattleshipActivity.BoardState.PLACEMENT
         }
 
         GlobalInstance.get().setBoardState(ownBoardState)
 
-        // set previous board state
-        val previousOwnBoardState: BattleshipActivity.BoardState = when (gameState?.ownBoardState) {
-            "OWN_BOARD" -> BattleshipActivity.BoardState.OWN_BOARD
-            "OTHER_BOARD" -> BattleshipActivity.BoardState.OTHER_BOARD
-            "OTHER_BOARD_TARGET" -> BattleshipActivity.BoardState.OTHER_BOARD_TARGET
-            "END" -> BattleshipActivity.BoardState.END
-            else -> BattleshipActivity.BoardState.PLACEMENT
-        }
-
-        GlobalInstance.get().setPreviousBoardState(previousOwnBoardState)
-
         // set other board state
         val otherBoardState: BattleshipActivity.BoardState = when (gameState?.ownBoardState) {
-            "OWN_BOARD" -> BattleshipActivity.BoardState.OWN_BOARD
-            "OTHER_BOARD" -> BattleshipActivity.BoardState.OTHER_BOARD
-            "OTHER_BOARD_TARGET" -> BattleshipActivity.BoardState.OTHER_BOARD_TARGET
+            "PLACEMENT_FINISHED_SERVER" -> BattleshipActivity.BoardState.PLACEMENT_FINISHED_SERVER
+            "PLACEMENT_FINISHED_CLIENT" -> BattleshipActivity.BoardState.PLACEMENT_FINISHED_CLIENT
+            "ROUND_SERVER" -> BattleshipActivity.BoardState.ROUND_SERVER
+            "ROUND_CLIENT" -> BattleshipActivity.BoardState.ROUND_CLIENT
+            "ROUND_SERVER_TARGET" -> BattleshipActivity.BoardState.ROUND_SERVER_TARGET
+            "ROUND_CLIENT_TARGET" -> BattleshipActivity.BoardState.ROUND_CLIENT_TARGET
+            "ROUND_SERVER_FINISHED" -> BattleshipActivity.BoardState.ROUND_SERVER_FINISHED
+            "ROUND_CLIENT_FINISHED" -> BattleshipActivity.BoardState.ROUND_CLIENT_FINISHED
+            "ROUND_SERVER_KEEP" -> BattleshipActivity.BoardState.ROUND_SERVER_KEEP
+            "ROUND_CLIENT_KEEP" -> BattleshipActivity.BoardState.ROUND_CLIENT_KEEP
             "END" -> BattleshipActivity.BoardState.END
             else -> BattleshipActivity.BoardState.PLACEMENT
         }
 
         GlobalInstance.get().setOtherBoardState(otherBoardState)
-
-        // set previous other board state
-        val previousOtherBoardState: BattleshipActivity.BoardState = when (gameState?.ownBoardState) {
-            "OWN_BOARD" -> BattleshipActivity.BoardState.OWN_BOARD
-            "OTHER_BOARD" -> BattleshipActivity.BoardState.OTHER_BOARD
-            "OTHER_BOARD_TARGET" -> BattleshipActivity.BoardState.OTHER_BOARD_TARGET
-            "END" -> BattleshipActivity.BoardState.END
-            else -> BattleshipActivity.BoardState.PLACEMENT
-        }
-
-        GlobalInstance.get().setPreviousOtherBoardState(previousOtherBoardState)
 
         // set own grid
         for (i in 0 ..< GRID_ROWS) {
@@ -826,9 +825,7 @@ class MainActivity : AppCompatActivity() {
         GlobalInstance.get().clearSnackbarBox()
 
         GlobalInstance.get().setBoardState(BattleshipActivity.BoardState.PLACEMENT)
-        GlobalInstance.get().setPreviousBoardState(BattleshipActivity.BoardState.PLACEMENT)
         GlobalInstance.get().setOtherBoardState(BattleshipActivity.BoardState.PLACEMENT)
-        GlobalInstance.get().setPreviousOtherBoardState(BattleshipActivity.BoardState.PLACEMENT)
 
         GlobalInstance.get().resetOwnGrid()
         GlobalInstance.get().resetOtherGrid()
@@ -852,11 +849,14 @@ class MainActivity : AppCompatActivity() {
             (!sharedPreferences.contains("grid_cell_size")) ||
             (!sharedPreferences.contains("grid_cell_padding")) ||
             (!sharedPreferences.contains("sound_effects")) ||
+            (!sharedPreferences.contains("show_ping")) ||
             (!sharedPreferences.contains("udp_network_interface_name")) ||
             (!sharedPreferences.contains("udp_multicast_ip")) ||
             (!sharedPreferences.contains("udp_multicast_port")) ||
             (!sharedPreferences.contains("udp_multicast_ttl")) ||
             (!sharedPreferences.contains("tcp_server_port")) ||
+            (!sharedPreferences.contains("communication_wait")) ||
+            (!sharedPreferences.contains("bidirectional_timeout")) ||
             (!sharedPreferences.contains("tcp_common_passphrase")) ||
             (!sharedPreferences.contains("tcp_encryption"))
         ) {
@@ -874,11 +874,14 @@ class MainActivity : AppCompatActivity() {
                 if (!sharedPreferences.contains("grid_cell_size")) putString("grid_cell_size", SETTINGS_GRID_CELL_SIZE)
                 if (!sharedPreferences.contains("grid_cell_padding")) putString("grid_cell_padding", SETTINGS_GRID_CELL_PADDING)
                 if (!sharedPreferences.contains("sound_effects")) putBoolean("sound_effects", SETTINGS_SOUND_EFFECTS.contentEquals("true"))
+                if (!sharedPreferences.contains("show_ping")) putBoolean("show_ping", SETTINGS_SHOW_PING.contentEquals("true"))
                 if (!sharedPreferences.contains("udp_network_interface_name")) putString("udp_network_interface_name", SETTINGS_UDP_NETWORK_INTERFACE_NAME)
                 if (!sharedPreferences.contains("udp_multicast_ip")) putString("udp_multicast_ip", SETTINGS_UDP_MULTICAST_IP)
                 if (!sharedPreferences.contains("udp_multicast_port")) putString("udp_multicast_port", SETTINGS_UDP_MULTICAST_PORT)
                 if (!sharedPreferences.contains("udp_multicast_ttl")) putString("udp_multicast_ttl", SETTINGS_UDP_MULTICAST_TTL)
                 if (!sharedPreferences.contains("tcp_server_port")) putString("tcp_server_port", SETTINGS_TCP_SERVER_PORT)
+                if (!sharedPreferences.contains("communication_wait")) putString("communication_wait", SETTINGS_COMMUNICATION_WAIT)
+                if (!sharedPreferences.contains("bidirectional_timeout")) putString("bidirectional_timeout", SETTINGS_BIDIRECTIONAL_TIMEOUT)
                 if (!sharedPreferences.contains("tcp_common_passphrase")) putString("tcp_common_passphrase", SETTINGS_TCP_COMMON_PASSPHRASE)
                 if (!sharedPreferences.contains("tcp_encryption")) putBoolean("tcp_encryption", SETTINGS_TCP_ENCRYPTION.contentEquals("true"))
             }
